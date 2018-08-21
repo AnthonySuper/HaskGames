@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dabcaafb4effecaf30439a169cb5e4a6e807048e5d6a34bbc32fd3f05e45346e
+-- hash: 71a2b34d1337e7f90cd3c2f7aef1239d99ba0ec8f665d9aab067a8e15fa35d5a
 
 name:           haskgames-server
 version:        0.1.0.0
@@ -24,12 +24,14 @@ library
   exposed-modules:
       Game.FillBlanks.CardCast
       Game.FillBlanks.CardCast.Internal
+      Game.Player
   other-modules:
       Paths_haskgames_server
   hs-source-dirs:
       src
   build-depends:
-      aeson
+      MonadRandom
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , haskgames-shared
@@ -48,7 +50,8 @@ test-suite haskgames-server-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      MonadRandom
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , haskgames-server

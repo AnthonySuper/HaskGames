@@ -23,6 +23,7 @@ dependencies:
 - bytestring
 - wreq
 - haskgames-shared
+- MonadRandom
 
 library:
   source-dirs: src
