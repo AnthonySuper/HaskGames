@@ -5,6 +5,7 @@ module Game.FillBlanks.Game where
     import qualified Data.Text as T
     import Control.Lens
     import Data.Aeson
+    import Data.Semigroup
 
     type TextRep = T.Text
 
@@ -43,6 +44,7 @@ module Game.FillBlanks.Game where
             = CardDeck (c <> c') (r <> r')
 
     instance Monoid CardDeck where
+        mappend = (<>)
         mempty = CardDeck mempty mempty
         mconcat cs = CardDeck calls responses
             where

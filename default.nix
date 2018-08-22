@@ -1,11 +1,10 @@
 (import ./reflex-platform {}).project ({ pkgs, ...} : {
   packages = {
     haskgames-shared = ./haskgames-shared;
-    haskgames-server = ./haskgames-server;
   };
 
   shells = {
-    ghc = ["haskgames-shared" "haskgames-server"];
+    ghc = ["haskgames-shared"];
     ghcjs = ["haskgames-shared"];
   };
 })

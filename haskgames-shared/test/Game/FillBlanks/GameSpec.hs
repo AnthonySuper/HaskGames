@@ -1,10 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, AllowAmbiguousTypes #-}
 
 module Game.FillBlanks.GameSpec where 
     
 import Test.Hspec
 import Control.Lens
 import Game.FillBlanks.Game
+import Data.Monoid
 
 spec :: Spec 
 spec =
