@@ -2,10 +2,11 @@
   packages = {
     haskgames-shared = ./haskgames-shared;
     haskgames-server = ./haskgames-server;
+    haskgames-client = ./haskgames-client;
   };
 
   shells = {
-    ghc = ["haskgames-shared" "haskgames-server"];
-    ghcjs = ["haskgames-shared"];
+    ghc = ["haskgames-shared" "haskgames-server" "haskgames-client"];
+    ghcjs = ["haskgames-shared" "haskgames-client"];
   };
 })

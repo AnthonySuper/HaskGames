@@ -1,0 +1,49 @@
+name:                haskgames-client
+version:             0.1.0.0
+github:              "anthonysuper/HaskGames"
+license:             BSD3
+author:              "Anthony Super"
+maintainer:          "anthony@noided.media"
+copyright:           "2018 Anthony Super"
+
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/anthonysuper/HaskGames#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- text
+- lens
+- aeson
+- bytestring
+- haskgames-shared
+
+executable:
+  main: Main.hs
+  source-dirs: 
+    - src
+    - lib
+  dependencies:
+    - hpack
+
+
+library:
+  source-dirs: src
+
+tests:
+  HaskGames-client-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - haskgames-shared
+    - hspec
