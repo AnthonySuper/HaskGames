@@ -23,6 +23,8 @@ dependencies:
 - aeson
 - bytestring
 - haskgames-shared
+- reflex
+- reflex-dom
 
 executable:
   main: Main.hs
