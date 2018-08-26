@@ -24,6 +24,7 @@ dependencies:
 - wreq
 - haskgames-shared
 - MonadRandom
+- containers
 
 library:
   source-dirs: src
