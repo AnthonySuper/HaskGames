@@ -5,28 +5,25 @@ module Game.FillBlanks.GameSpec where
 import Test.Hspec
 import Control.Lens
 import Game.FillBlanks.Game
+import Game.Common
 import Data.Monoid
+import qualified Data.Map as Map
+import Game.CommonHelpers
 
 spec :: Spec 
-spec =
-    describe "Game Decks" gameDecks
+spec = do
+    describe "FillBlanksState" fillBlanksState
 
-exResp = ResponseCard "Test" FillIn
-exCall = CallCard "What test? _." 1 FillIn
-exDeck = CardDeck [exCall] [exResp]
 
-gameDecks = do 
-    describe "semigroup instance" $
-        it "validly combines empty" $ do
-            let empty = CardDeck [] []
-            empty <> empty `shouldBe` empty
-    describe "monoid instance" $ do
-        it "has a valid empty" $ do
-            let c = mempty :: CardDeck
-            c <> c `shouldBe` c
-        it "appens with empty" $
-            exDeck <> mempty `shouldBe` exDeck
-        it "mconcats validly" $
-            shouldBe
-                (mconcat [exDeck, exDeck, exDeck])
-                (exDeck <> exDeck <> exDeck)
+
+fillBlanksState = do
+    describe "fillBlanksWinner" $ do
+        let ps = playersToPlayerState $ map PlayerState [0, 2, 1]
+        it "works when there is a winner" $ do
+            let gs = GameState ps $ CommonState "1" 2 mempty
+            fillBlanksWinner gs `shouldBe` Just "2"
+        it "works where there is not a winner" $ do
+            let gs = GameState ps $ CommonState "1" 3 mempty
+            fillBlanksWinner gs `shouldBe` Nothing
+            
+

@@ -6,48 +6,47 @@ module Game.FillBlanks.Game where
     import Control.Lens
     import Data.Aeson
     import Data.Semigroup
+    import qualified Data.Map as Map
+    import Game.FillBlanks.Deck
+    import Game.Common
+    import Data.Maybe
 
-    type TextRep = T.Text
-
-    data CardSource 
-        = CardCastDeck T.Text
-        | FillIn
-        deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON)
-
-    data ResponseCard 
-        = ResponseCard { _responseBody :: TextRep
-                       , _responseSource :: CardSource 
-                       }
-        deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
-    makeLenses ''ResponseCard
+    data PlayerState
+        = PlayerState 
+        { _playerStateScore :: Integer
+        }
+        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
     
-    data CallCard
-        = CallCard { _callBody :: TextRep 
-                   , _callArity :: Int
-                   , _callSource :: CardSource
-                   }
-        deriving (Show, Eq, Generic, ToJSON, FromJSON)
+    makeLenses ''PlayerState
 
-    makeLenses ''CallCard
-
-    data CardDeck =
-        CardDeck { _cardDeckCalls :: [CallCard]
-                 , _cardDeckResponses :: [ResponseCard]
-                 }
-        deriving (Show, Eq, Generic, ToJSON, FromJSON)
+    data CommonState
+        = CommonState
+        { _commonStateJudge :: PlayerId
+        , _commonStateWinScore :: Integer
+        , _commonStateDeck :: CardDeck
+        }
+        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
     
-    makeLenses ''CardDeck
+    makeLenses ''CommonState
 
-    instance Semigroup CardDeck where
-        (CardDeck c r) <> (CardDeck c' r') 
-            = CardDeck (c <> c') (r <> r')
+    type FillBlanksState = GameState PlayerState CommonState
 
-    instance Monoid CardDeck where
-        mappend = (<>)
-        mempty = CardDeck mempty mempty
-        mconcat cs = CardDeck calls responses
-            where
-                calls = concatMap (view cardDeckCalls) cs
-                responses = concatMap (view cardDeckResponses) cs
+    fillBlanksWinner :: FillBlanksState -> Maybe PlayerId
+    fillBlanksWinner gs = fst <$> listToMaybe (Map.toList winners)
+        where
+            winners = Map.filter isWinner (gs ^. playerState)
+            winScore = gs ^. commonState . commonStateWinScore
+            isWinner ps = (ps ^. playerStateScore) >= winScore
+    
+    -- | A judgement case is a set of cards to be judged
+    -- It only holds an opaque id so that judges cannot cheat
+    data JudgementCase
+        = JudgementCase
+        { _judgementCaseCards :: [ResponseCard] -- | Response cards to be judged
+        , _judgementCaseId :: Integer -- | Opaque id to be judged
+        }
+        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+
+    makeLenses ''JudgementCase
+
     

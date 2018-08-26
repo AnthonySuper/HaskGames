@@ -6,7 +6,7 @@ import Test.Hspec
 
 import Game.FillBlanks.CardCast
 import Game.FillBlanks.CardCast.Internal
-import Game.FillBlanks.Game
+import Game.FillBlanks.Deck
 import Control.Lens
 import Data.Maybe
 

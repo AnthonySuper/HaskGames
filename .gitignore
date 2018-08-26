@@ -4,3 +4,4 @@ HaskGames.cabal
 result/
 result
 dist-newstyle/
+.vscode/

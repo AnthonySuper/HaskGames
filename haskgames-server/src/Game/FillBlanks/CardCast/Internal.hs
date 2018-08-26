@@ -10,7 +10,7 @@ module Game.FillBlanks.CardCast.Internal where
     import qualified Data.Text as T
     import Data.Maybe (listToMaybe)
     import Control.Monad
-    import Game.FillBlanks.Game
+    import Game.FillBlanks.Deck
     import qualified Network.Wreq as Req
     import Control.Lens
 
