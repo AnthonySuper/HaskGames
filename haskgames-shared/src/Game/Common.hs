@@ -17,8 +17,8 @@ module Game.Common where
         { _playerState :: M.Map PlayerId playerState
         , _commonState :: commonState
         }
-        deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
-    
+        deriving (Show, Eq, Read, Generic)
+
     makeLenses ''GameState
 
     hasPlayer :: PlayerId -> GameState a b -> Bool

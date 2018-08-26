@@ -19,25 +19,6 @@ module Game.FillBlanks.Game where
     
     makeLenses ''PlayerState
 
-    data CommonState
-        = CommonState
-        { _commonStateJudge :: PlayerId
-        , _commonStateWinScore :: Integer
-        , _commonStateDeck :: CardDeck
-        }
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
-    
-    makeLenses ''CommonState
-
-    type FillBlanksState = GameState PlayerState CommonState
-
-    fillBlanksWinner :: FillBlanksState -> Maybe PlayerId
-    fillBlanksWinner gs = fst <$> listToMaybe (Map.toList winners)
-        where
-            winners = Map.filter isWinner (gs ^. playerState)
-            winScore = gs ^. commonState . commonStateWinScore
-            isWinner ps = (ps ^. playerStateScore) >= winScore
-    
     -- | A judgement case is a set of cards to be judged
     -- It only holds an opaque id so that judges cannot cheat
     data JudgementCase
@@ -45,7 +26,31 @@ module Game.FillBlanks.Game where
         { _judgementCaseCards :: [ResponseCard] -- | Response cards to be judged
         , _judgementCaseId :: Integer -- | Opaque id to be judged
         }
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+        deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+
+    data CommonState
+        = CommonState
+        { _commonStateJudge :: PlayerId
+        , _commonStateWinScore :: Integer
+        , _commonStateDeck :: CardDeck
+        , _commonStateCases :: Map.Map JudgementCase PlayerId
+        }
+        deriving (Show, Read, Eq, Generic)
+    
+    makeLenses ''CommonState
+
+    type FillBlanksState = GameState PlayerState CommonState
+
+    winner :: FillBlanksState -> Maybe PlayerId
+    winner gs = fst <$> listToMaybe (Map.toList winners)
+        where
+            winners = Map.filter isWinner (gs ^. playerState)
+            winScore = gs ^. commonState . commonStateWinScore
+            isWinner ps = (ps ^. playerStateScore) >= winScore
+
+    judgementPlayer :: FillBlanksState -> JudgementCase -> Maybe PlayerId
+    judgementPlayer gs c = 
+        gs ^. commonState . commonStateCases . at c
 
     makeLenses ''JudgementCase
 

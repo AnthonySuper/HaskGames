@@ -15,7 +15,7 @@ module Game.FillBlanks.Deck where
         = ResponseCard { _responseBody :: T.Text
                        , _responseSource :: CardSource 
                        }
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+        deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
     makeLenses ''ResponseCard
     
@@ -24,7 +24,7 @@ module Game.FillBlanks.Deck where
                    , _callArity :: Int
                    , _callSource :: CardSource
                    }
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+        deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
     makeLenses ''CallCard
 
@@ -32,7 +32,7 @@ module Game.FillBlanks.Deck where
         CardDeck { _cardDeckCalls :: [CallCard]
                  , _cardDeckResponses :: [ResponseCard]
                  }
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+        deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
     
     makeLenses ''CardDeck
 
