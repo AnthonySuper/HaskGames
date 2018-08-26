@@ -12,10 +12,23 @@ import Game.CommonHelpers
 
 spec :: Spec 
 spec = do
-    winnerSpec
+    scoringSpec
     judgementSpec
 
 defaultPlayers = playersToPlayerState $ map PlayerState [0, 2, 1]
+defaultGame = GameState defaultPlayers $ CommonState "1" 2 mempty mempty
+
+scoringSpec = do 
+    winnerSpec
+    increaseScoreSpec
+
+increaseScoreSpec = describe "increaseScore" $ do
+    it "increases if the key exists" $ do
+        let ng = increaseScore defaultGame "1"
+        let ps = ng ^. playerState . at "1" <&> view playerStateScore :: Maybe Integer
+        ps `shouldBe` Just 1
+    it "does nothing if the key doesn't" $ do
+        increaseScore defaultGame "123123" `shouldBe` defaultGame
 
 winnerSpec = describe "winner" $ do
     it "works when there is a winner" $ do

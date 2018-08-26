@@ -52,6 +52,21 @@ module Game.FillBlanks.Game where
     judgementPlayer gs c = 
         gs ^. commonState . commonStateCases . at c
 
+    -- | Increase the score of the player with the given id
+    -- Note: Silently does nothing if said player doesn't exist
+    increaseScore :: FillBlanksState -> PlayerId -> FillBlanksState
+    increaseScore g i =
+        playerState . at i . _Just . playerStateScore %~ (+1) $ g
+
+    -- | Increase the score of the player with the given Judgement case
+    -- If that player no longer exists, or the judgment case is invalid, returns
+    -- @Nothing@. This may be made more explicit in the future. 
+    increaseJudgementScore :: FillBlanksState -> JudgementCase -> Maybe FillBlanksState
+    increaseJudgementScore gs j = increaseScore gs <$> judgementPlayer gs j
+
+    increaseJudgementScore' gs j = fromMaybe gs $
+        increaseJudgementScore gs j
+
     makeLenses ''JudgementCase
 
     
