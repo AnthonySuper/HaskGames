@@ -13,8 +13,8 @@ module Game.FillBlanks.Game where
     -- It only holds an opaque id so that judges cannot cheat
     data JudgementCase
         = JudgementCase
-        { _judgementCaseCards :: [ResponseCard] -- | Response cards to be judged
-        , _judgementCaseId :: Integer -- | Opaque id to be judged
+        { _judgementCaseCards :: [ResponseCard] 
+        , _judgementCaseId :: Integer
         }
         deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
     
