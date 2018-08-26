@@ -27,6 +27,8 @@ module Game.FillBlanks.Game where
         , _judgementCaseId :: Integer -- | Opaque id to be judged
         }
         deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+    
+    makeLenses ''JudgementCase
 
     data CommonState
         = CommonState
@@ -61,12 +63,5 @@ module Game.FillBlanks.Game where
     -- | Increase the score of the player with the given Judgement case
     -- If that player no longer exists, or the judgment case is invalid, returns
     -- @Nothing@. This may be made more explicit in the future. 
-    increaseJudgementScore :: FillBlanksState -> JudgementCase -> Maybe FillBlanksState
-    increaseJudgementScore gs j = increaseScore gs <$> judgementPlayer gs j
-
-    increaseJudgementScore' gs j = fromMaybe gs $
-        increaseJudgementScore gs j
-
-    makeLenses ''JudgementCase
-
-    
+    increaseScoreJudgement :: FillBlanksState -> JudgementCase -> Maybe FillBlanksState
+    increaseScoreJudgement gs j = increaseScore gs <$> judgementPlayer gs j

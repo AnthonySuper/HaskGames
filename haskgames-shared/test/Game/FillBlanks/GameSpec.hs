@@ -50,3 +50,9 @@ judgementSpec = describe "judgement cases" $ do
             jp (JudgementCase [] 1) `shouldBe` Just "1"
         it "does not find if it does not exist" $
             jp (JudgementCase [] 10) `shouldBe` Nothing
+    describe "increaseJudgementScore" $ do
+        let iscore = increaseScoreJudgement gs
+        it "modifies if the judgment exists" $
+            iscore (JudgementCase [] 1) `shouldNotBe` Just gs
+        it "returns nothing if the judgement doesn't exist" $
+            iscore (JudgementCase [] 10) `shouldBe` Nothing
