@@ -1,0 +1,4 @@
+packages:
+  haskgames-shared/
+  haskgames-client/
+  haskgames-server/

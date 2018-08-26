@@ -25,6 +25,7 @@ dependencies:
 - haskgames-shared
 - reflex
 - reflex-dom
+- containers
 
 executable:
   main: Main.hs
