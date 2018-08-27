@@ -40,4 +40,3 @@ module Game.Common where
     class Monad m => MonadGame m where
         broadcast :: (ToJSON e) => e -> m ()
         sendPlayer :: (ToJSON e) => PlayerId -> e -> m ()
-    

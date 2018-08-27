@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8b8f107803e6202c1808729c788570497c4b6bd28dd49bafd7511ffeec72fefc
+-- hash: bd664bf64a226e602ad21b3983cbf65079c5d7190e43bfd0e5df3dd79cd4e70e
 
 name:           haskgames-server
 version:        0.1.0.0
@@ -51,6 +51,7 @@ test-suite haskgames-server-test
   other-modules:
       Game.CommonHelpers
       Game.FillBlanks.CardCastSpec
+      Game.FillBlanks.ServerSpec
       Game.FillBlanks.ServerStateSpec
       Paths_haskgames_server
   hs-source-dirs:

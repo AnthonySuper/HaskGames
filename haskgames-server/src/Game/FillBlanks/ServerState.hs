@@ -32,6 +32,7 @@ module Game.FillBlanks.ServerState where
         , _commonStateDeck :: CardDeck
         , _commonStateCases :: Map.Map JudgementCase PlayerId
         , _commonStateStatus :: GameStatus
+        , _commonStateCurrentCall :: CallCard
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -73,6 +74,11 @@ module Game.FillBlanks.ServerState where
 
     isJudge :: FillBlanksState -> PlayerId -> Bool
     isJudge c p = (c ^. commonState . commonStateJudge) == p
+
+    judgedBy = isJudge
+
+    hasSubmissionFrom :: FillBlanksState -> PlayerId -> Bool
+    hasSubmissionFrom s p = p `elem` (s ^. commonState . commonStateCases & Map.elems)
 
     nextJudge :: FillBlanksState -> FillBlanksState
     nextJudge s = s & commonState . commonStateJudge .~ newJudge

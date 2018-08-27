@@ -94,13 +94,29 @@ module Game.FillBlanks.Server where
                   -> m FillBlanksState
     serveAwaitEvt c p evt = go evt
         where
-            go (SubmitJudgement j) = do
-                let updated = addJudgement c p j
-                if judgeable updated then do
-                    broadcast $ 
-                        StartJudgement (Map.keys $ updated ^. commonState . commonStateCases)
-                    return $ 
-                        updated & commonState . commonStateStatus .~ AwaitingJudgement
-                else
-                    return updated
+            go (SubmitJudgement j) = addSubmission c p j
+            go _ = do
+                sendPlayer p $ InvalidSend "You cannot do that now"
+                return c
     
+    addSubmission :: (MonadGame m)
+                  => FillBlanksState
+                  -> PlayerId
+                  -> JudgementCase
+                  -> m FillBlanksState
+    addSubmission s p j
+        | s `judgedBy` p = do
+            sendPlayer p $ InvalidSend "You are the judge, you cannot submit responses"
+            return s
+        | s `hasSubmissionFrom` p = do
+            sendPlayer p $ InvalidSend "You've already submitted"
+            return s
+        | otherwise = do
+            let updated = addJudgement s p j
+            if judgeable updated then do
+                broadcast $ 
+                    StartJudgement (Map.keys $ updated ^. commonState . commonStateCases)
+                return $ 
+                    updated & commonState . commonStateStatus .~ AwaitingJudgement
+            else
+                return updated
