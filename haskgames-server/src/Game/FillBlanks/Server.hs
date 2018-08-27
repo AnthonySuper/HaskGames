@@ -42,6 +42,13 @@ module Game.FillBlanks.Server where
         where
             scores = s ^. playerState & Map.map (^. playerStateScore)
 
+    sendError :: (MonadGame m)
+              => PlayerId
+              -> T.Text
+              -> FillBlanksState
+              -> m FillBlanksState
+    sendError p msg s = (sendPlayer p $ InvalidSend msg) >> return s
+
     serveJudgementEvt :: (MonadGame m)
                       => FillBlanksState
                       -> PlayerId
@@ -51,15 +58,9 @@ module Game.FillBlanks.Server where
         | (isJudge c p) = case e of
             SelectWinner w -> case increaseScoreJudgement c w of
                 Just c' -> startRound c'
-                Nothing -> do
-                    sendPlayer p $ InvalidSend "Judgement doesn't exist"
-                    return c
-            _ -> do
-                sendPlayer p $ InvalidSend "You must select a winner" 
-                return c
-        | otherwise = do
-            sendPlayer p $ InvalidSend "Only the judge may work"
-            return c
+                Nothing -> sendError p "Judgement did not exist" c
+            _ -> sendError p "You must select a winner" c
+        | otherwise = sendError p "You must select a winner" c
         
     startRound g = do
         let ng = g & (commonState . commonStateCases .~ mempty)
@@ -89,8 +90,7 @@ module Game.FillBlanks.Server where
         where
             go (SubmitJudgement j) = addSubmission c p j
             go _ = do
-                sendPlayer p $ InvalidSend "You cannot do that now"
-                return c
+               sendError p "You must select a winner" c
     
     addSubmission :: (MonadGame m)
                   => FillBlanksState
@@ -99,11 +99,9 @@ module Game.FillBlanks.Server where
                   -> m FillBlanksState
     addSubmission s p j
         | s `judgedBy` p = do
-            sendPlayer p $ InvalidSend "You are the judge, you cannot submit responses"
-            return s
+            sendError p "Judges cannot submit responses" s
         | s `hasSubmissionFrom` p = do
-            sendPlayer p $ InvalidSend "You've already submitted"
-            return s
+            sendError p "You've already submitted" s
         | otherwise = do
             let updated = addJudgement s p j
             if judgeable updated then do
@@ -111,5 +109,4 @@ module Game.FillBlanks.Server where
                     StartJudgement (Map.keys $ updated ^. commonState . commonStateCases)
                 return $ 
                     updated & commonState . commonStateStatus .~ AwaitingJudgement
-            else
-                return updated
+            else return updated
