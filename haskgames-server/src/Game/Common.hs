@@ -9,7 +9,6 @@ module Game.Common where
     import Control.Lens
     import Data.Aeson
 
-
     type PlayerId = T.Text
 
     data GameState playerState commonState
@@ -23,3 +22,22 @@ module Game.Common where
 
     hasPlayer :: PlayerId -> GameState a b -> Bool
     hasPlayer i g = M.member i (g ^. playerState)
+
+    numPlayers :: GameState a b -> Int
+    numPlayers g = M.size (g ^. playerState)
+
+    data RecvMessage re
+        = PlayerConnected PlayerId
+        | PlayerDisconnected PlayerId
+        | Tick 
+        | GameEvent PlayerId re
+        deriving (Show, Eq, Read, Generic, FromJSON)
+
+    instance MonadGame Identity where
+        broadcast _ = return ()
+        sendPlayer _ _ = return ()
+
+    class Monad m => MonadGame m where
+        broadcast :: (ToJSON e) => e -> m ()
+        sendPlayer :: (ToJSON e) => PlayerId -> e -> m ()
+    

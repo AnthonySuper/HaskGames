@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8c8e18268be4fb8faaed4966d1d802461937a74f2d4a4c7e5d034e413aab6511
+-- hash: 8b8f107803e6202c1808729c788570497c4b6bd28dd49bafd7511ffeec72fefc
 
 name:           haskgames-server
 version:        0.1.0.0
@@ -26,6 +26,7 @@ library
       Game.Common
       Game.FillBlanks.CardCast
       Game.FillBlanks.CardCast.Internal
+      Game.FillBlanks.Server
       Game.FillBlanks.ServerState
       Game.Player
   other-modules:

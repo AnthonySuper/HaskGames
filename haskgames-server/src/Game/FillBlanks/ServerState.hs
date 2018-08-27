@@ -20,12 +20,18 @@ module Game.FillBlanks.ServerState where
     
     makeLenses ''PlayerState
 
+    data GameStatus
+        = AwaitingSubmissions
+        | AwaitingJudgement
+        deriving (Show, Read, Eq, Ord, Enum, Generic)
+
     data CommonState
         = CommonState
         { _commonStateJudge :: PlayerId
         , _commonStateWinScore :: Integer
         , _commonStateDeck :: CardDeck
         , _commonStateCases :: Map.Map JudgementCase PlayerId
+        , _commonStateStatus :: GameStatus
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -55,3 +61,25 @@ module Game.FillBlanks.ServerState where
     -- @Nothing@. This may be made more explicit in the future. 
     increaseScoreJudgement :: FillBlanksState -> JudgementCase -> Maybe FillBlanksState
     increaseScoreJudgement gs j = increaseScore gs <$> judgementPlayer gs j
+
+    addJudgement :: FillBlanksState -> PlayerId -> JudgementCase -> FillBlanksState
+    addJudgement c p j = c & commonState . commonStateCases . at j .~ Just p
+
+    judgeable :: FillBlanksState -> Bool
+    judgeable s = judgementSize >= (playerSize - 1)
+        where
+            judgementSize = Map.size (s ^. commonState . commonStateCases)
+            playerSize = Map.size (s ^. playerState)
+
+    isJudge :: FillBlanksState -> PlayerId -> Bool
+    isJudge c p = (c ^. commonState . commonStateJudge) == p
+
+    nextJudge :: FillBlanksState -> FillBlanksState
+    nextJudge s = s & commonState . commonStateJudge .~ newJudge
+        where
+            newJudge = case ncand of
+                [] -> head candidates
+                x : xs -> x
+            currentJudge = s ^. commonState . commonStateJudge
+            candidates = Map.keys (s ^. playerState)
+            ncand = filter (>= currentJudge) candidates

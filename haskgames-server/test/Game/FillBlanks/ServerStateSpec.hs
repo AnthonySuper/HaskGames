@@ -18,7 +18,7 @@ module Game.FillBlanks.ServerStateSpec where
         judgementSpec
 
     defaultPlayers = playersToPlayerState $ map PlayerState [0, 2, 1]
-    defaultGame = GameState defaultPlayers $ CommonState "1" 2 mempty mempty
+    defaultGame = GameState defaultPlayers $ CommonState "1" 2 mempty mempty AwaitingSubmissions
 
     scoringSpec = do 
         winnerSpec
@@ -34,17 +34,17 @@ module Game.FillBlanks.ServerStateSpec where
 
     winnerSpec = describe "winner" $ do
         it "works when there is a winner" $ do
-            let gs = GameState defaultPlayers $ CommonState "1" 2 mempty mempty
+            let gs = GameState defaultPlayers $ CommonState "1" 2 mempty mempty AwaitingSubmissions
             winner gs `shouldBe` Just "2"
         it "works where there is not a winner" $ do
-            let gs = GameState defaultPlayers $ CommonState "1" 3 mempty mempty
+            let gs = GameState defaultPlayers $ CommonState "1" 3 mempty mempty AwaitingSubmissions
             winner gs `shouldBe` Nothing
                 
     judgementSpec = describe "judgement cases" $ do
         let cs = Map.fromList [ (JudgementCase [] 1, "1")
                             , (JudgementCase [] 2, "2")
                             , (JudgementCase [] 3, "3") ]
-        let gs = GameState defaultPlayers $ CommonState "1" 3 mempty cs
+        let gs = GameState defaultPlayers $ CommonState "1" 3 mempty cs undefined
 
         describe "judgementPlayer" $ do
             let jp = judgementPlayer gs
