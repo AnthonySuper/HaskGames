@@ -97,3 +97,11 @@ module Game.FillBlanks.ServerState where
             respLens = commonState . commonStateDeck . cardDeckResponses
             ns = s & respLens %~ (drop 6)
             dealt = s ^. respLens & take 6
+
+    nextCall :: FillBlanksState -> (CallCard, FillBlanksState)
+    nextCall s = (nc, ns)
+        where
+            callLens :: Lens' (GameState PlayerState CommonState) [CallCard]
+            callLens = commonState . commonStateDeck . cardDeckCalls
+            ns = s & callLens %~ tail
+            nc = s ^. callLens & head 

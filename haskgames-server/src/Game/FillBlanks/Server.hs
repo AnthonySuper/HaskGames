@@ -16,7 +16,7 @@ module Game.FillBlanks.Server where
     import Game.Common
     import Data.Maybe
 
-    data SendEvent
+    data ServerEvent
         = StartRound PlayerId CallCard
         | StartJudgement [JudgementCase]
         | RoundWinner JudgementCase T.Text
@@ -26,13 +26,13 @@ module Game.FillBlanks.Server where
         | DealCards [ResponseCard]
         deriving (Show, Read, Eq, Generic, ToJSON)
 
-    data RecvEvent
+    data ClientEvent
         = SubmitJudgement JudgementCase
         | SelectWinner JudgementCase
 
     serve :: (MonadGame m)
           => FillBlanksState
-          -> RecvMessage RecvEvent
+          -> RecvMessage ClientEvent
           -> m FillBlanksState
     serve current (GameEvent pid evt) =
         go current pid evt
@@ -54,25 +54,15 @@ module Game.FillBlanks.Server where
         where
             scores = s ^. playerState & Map.map (^. playerStateScore)
 
-    serveJudgement :: (MonadGame m)
-                   => FillBlanksState
-                   -> RecvMessage RecvEvent
-                   -> m FillBlanksState
-    serveJudgement current msg = go msg
-        where
-            go (GameEvent player evt) =
-                serveJudgementEvt current player evt
-            go _ = return current
-
     serveJudgementEvt :: (MonadGame m)
                       => FillBlanksState
                       -> PlayerId
-                      -> RecvEvent
+                      -> ClientEvent
                       -> m FillBlanksState
     serveJudgementEvt c p e
         | (isJudge c p) = case e of
-            SelectWinner w -> case judgeWinner c w of
-                Just c' -> return c'
+            SelectWinner w -> case increaseScoreJudgement c w of
+                Just c' -> startRound c'
                 Nothing -> do
                     sendPlayer p $ InvalidSend "Judgement doesn't exist"
                     return c
@@ -83,27 +73,20 @@ module Game.FillBlanks.Server where
             sendPlayer p $ InvalidSend "Only the judge may work"
             return c
         
-
-    judgeWinner s w = do
-        w <- increaseScoreJudgement s w
-        return $ w & (commonState . commonStateCases .~ mempty)
+    startRound g = do
+        let ng = g & (commonState . commonStateCases .~ mempty)
                    & nextJudge
+        let (nc, ng') = nextCall ng
+        updateScores ng'
+        let sr = StartRound (g ^. commonState . commonStateJudge) nc
+        broadcast sr
+        return ng'
     
-
-    serveAwait :: (MonadGame m)
-               => FillBlanksState
-               -> RecvMessage RecvEvent
-               -> m FillBlanksState
-    serveAwait current msg = go msg
-        where
-            go (GameEvent player evt) =
-                serveAwaitEvt current player evt
-            go _ = return current 
 
     serveAwaitEvt :: (MonadGame m)
                   => FillBlanksState
                   -> PlayerId
-                  -> RecvEvent
+                  -> ClientEvent
                   -> m FillBlanksState
     serveAwaitEvt c p evt = go evt
         where
