@@ -90,13 +90,13 @@ module Game.FillBlanks.ServerState where
             candidates = Map.keys (s ^. playerState)
             ncand = filter (>= currentJudge) candidates
         
-    dealCards :: FillBlanksState -> ([ResponseCard], FillBlanksState)
-    dealCards s = (dealt, ns)
+    dealCards :: Int -> FillBlanksState -> ([ResponseCard], FillBlanksState)
+    dealCards i s = (dealt, ns)
         where
             respLens :: Lens' (GameState PlayerState CommonState) [ResponseCard]
             respLens = commonState . commonStateDeck . cardDeckResponses
-            ns = s & respLens %~ (drop 6)
-            dealt = s ^. respLens & take 6
+            ns = s & respLens %~ (drop i)
+            dealt = s ^. respLens & take i
 
     nextCall :: FillBlanksState -> (CallCard, FillBlanksState)
     nextCall s = (nc, ns)

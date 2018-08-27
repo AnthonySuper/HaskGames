@@ -12,6 +12,7 @@ module Game.FillBlanks.ServerSpec where
     import qualified Data.Map as Map
     import Game.FillBlanks.Server
     import Game.CommonHelpers
+    import Game.FillBlanks.Event
 
     defaultCard = CallCard "" 1 FillIn
     defaultPlayers = playersToPlayerState $ map PlayerState [0, 2, 1, 2]

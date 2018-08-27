@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c540ffd99ad0ceda752d869686f0652a9dcaac2715ce5afe219245b66d53115b
+-- hash: e9e29a94e2beeb7f7427405e687d00f6548d1d7c4c1d9cc4324dd309430204c9
 
 name:           haskgames-shared
 version:        0.1.0.0
@@ -24,6 +24,7 @@ source-repository head
 library
   exposed-modules:
       Game.FillBlanks.Deck
+      Game.FillBlanks.Event
       Game.FillBlanks.Game
       Lib
   other-modules:

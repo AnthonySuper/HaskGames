@@ -13,23 +13,12 @@ module Game.FillBlanks.Server where
     import Game.FillBlanks.Deck
     import Game.FillBlanks.Game
     import Game.FillBlanks.ServerState
+    import Game.FillBlanks.Event
     import Game.Common
     import Data.Maybe
+    import Control.Monad (foldM)
 
-    data ServerEvent
-        = StartRound PlayerId CallCard
-        | StartJudgement [JudgementCase]
-        | RoundWinner JudgementCase T.Text
-        | UpdateScores (Map.Map T.Text Integer)
-        | GameWinner T.Text
-        | InvalidSend T.Text
-        | DealCards [ResponseCard]
-        deriving (Show, Read, Eq, Generic, ToJSON)
-
-    data ClientEvent
-        = SubmitJudgement JudgementCase
-        | SelectWinner JudgementCase
-
+   
     serve :: (MonadGame m)
           => FillBlanksState
           -> RecvMessage ClientEvent
@@ -42,8 +31,7 @@ module Game.FillBlanks.Server where
                     AwaitingSubmissions -> serveAwaitEvt
                     AwaitingJudgement -> serveJudgementEvt
     serve current (PlayerConnected pid) = do
-        let (cards, ns) = dealCards current
-        sendPlayer pid $ DealCards cards
+        ns <- dealCardsG 8 current pid
         updateScores ns
         return ns
 
@@ -80,8 +68,17 @@ module Game.FillBlanks.Server where
         updateScores ng'
         let sr = StartRound (g ^. commonState . commonStateJudge) nc
         broadcast sr
-        return ng'
+        foldM (dealCardsG $ nc ^. callArity) ng' (ng' ^. playerState & Map.keys)
     
+    dealCardsG :: (MonadGame m)
+               => Int
+               -> FillBlanksState
+               -> PlayerId
+               -> m FillBlanksState
+    dealCardsG i g pid = do
+        let (nc, ng) = dealCards i g
+        sendPlayer pid $ DealCards nc
+        return ng
 
     serveAwaitEvt :: (MonadGame m)
                   => FillBlanksState
