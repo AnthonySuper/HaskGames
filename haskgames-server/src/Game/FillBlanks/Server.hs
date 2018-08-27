@@ -23,19 +23,35 @@ module Game.FillBlanks.Server where
    
     serve :: (MonadGame ServerEvent m)
           => FillBlanksState
-          -> RecvMessage ClientEvent
+          -> PlayerId
+          -> ClientEvent
           -> m FillBlanksState
-    serve current (GameEvent pid evt) =
-        go current pid evt
-        where
-            go = 
-                case (current ^. commonState . commonStateStatus) of
-                    AwaitingSubmissions -> serveAwaitEvt
-                    AwaitingJudgement -> serveJudgementEvt
-    serve current (PlayerConnected pid) = do
-        ns <- dealCardsG 8 current pid
+    serve current pid evt =
+        case (current ^. commonState . commonStateStatus) of
+            AwaitingSubmissions -> serveAwaitEvt current pid evt
+            AwaitingJudgement -> serveJudgementEvt current pid evt
+
+    playerConnectState :: (MonadGame ServerEvent m)
+                       => FillBlanksState -> PlayerId -> m PlayerState
+    playerConnectState _ _ = return $ PlayerState 0
+
+    playerWillConnect :: (MonadGame ServerEvent m)
+                      => FillBlanksState -> PlayerId -> m FillBlanksState
+    playerWillConnect s _ = return s
+
+    playerDidConnect :: (MonadGame ServerEvent m)
+                     => FillBlanksState -> PlayerId -> m FillBlanksState
+    playerDidConnect gs pid = do
+        ns <- dealCardsG 8 gs pid
         updateScores ns
         return ns
+    
+    playerDisconnected :: (MonadGame ServerEvent m)
+                       => FillBlanksState -> FillBlanksState -> PlayerId -> m FillBlanksState
+    playerDisconnected s s' p
+        | (isJudge s p) = startRound s'
+        | otherwise = return s'
+    
 
     updateScores :: (MonadGame ServerEvent m)
                  => FillBlanksState

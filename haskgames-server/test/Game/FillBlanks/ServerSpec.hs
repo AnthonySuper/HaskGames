@@ -35,17 +35,17 @@ module Game.FillBlanks.ServerSpec where
                         [ (JudgementCase [] 3, "3")
                         , (JudgementCase [] 4, "4") ] 
         let twoMore = makeAwaiting [ (JudgementCase [] 3, "3") ]
-        let runTest i e = runIdentity $ serve i e
+        let runTest i p e = runIdentity $ serve i p e
         describe "attempted judgement" $ do
             it "does nothing when sent from the judge" $ do
-                let evt = GameEvent "1" $ SelectWinner $ JudgementCase [ResponseCard "" FillIn] 1
-                runTest twoMore evt `shouldBe` twoMore
+                let evt = SelectWinner $ JudgementCase [ResponseCard "" FillIn] 1
+                runTest twoMore "1" evt `shouldBe` twoMore
         describe "attempted submission" $ do
             describe "sending from somebody yet to submit" $ do
                 let jc = JudgementCase [ResponseCard "" FillIn] 2
-                let evt = GameEvent "2" $ SubmitJudgement $ jc
+                let evt = SubmitJudgement $ jc
                 describe "when that is the last judgement" $ do
-                    let r = runTest oneMore evt
+                    let r = runTest oneMore "2" evt
                     it "modifies the state" $
                         r `shouldNotBe` oneMore
                     it "adds the judgement" $ do
@@ -55,7 +55,7 @@ module Game.FillBlanks.ServerSpec where
                             (r ^. commonState . commonStateStatus)
                             AwaitingJudgement
                 describe "When there are more judements" $ do
-                    let r = runTest twoMore evt
+                    let r = runTest twoMore "2" evt
                     it "modifies the state" $ 
                         r `shouldNotBe` twoMore
                     it "adds the judgement" $ do
@@ -66,13 +66,13 @@ module Game.FillBlanks.ServerSpec where
                             AwaitingSubmissions
             describe "sending from the judge" $ do
                 let jc = JudgementCase [ResponseCard "" FillIn] 1
-                let evt = GameEvent "1" $ SubmitJudgement $ jc
-                let r = runTest oneMore evt
+                let evt = SubmitJudgement $ jc
+                let r = runTest oneMore "1" evt
                 it "does not change the state" $
                     r `shouldBe` oneMore
             describe "sending from a person who already submitted" $ do
                 let jc = JudgementCase [ResponseCard "" FillIn] 1
-                let evt = GameEvent "3" $ SubmitJudgement $ jc
-                let r = runTest oneMore evt
+                let evt = SubmitJudgement $ jc
+                let r = runTest oneMore "3" evt
                 it "does not change the state" $
                     r `shouldBe` oneMore

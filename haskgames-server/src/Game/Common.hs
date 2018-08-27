@@ -34,15 +34,16 @@ module Game.Common where
     data RecvMessage re
         = PlayerConnected PlayerId
         | PlayerDisconnected PlayerId
-        | Tick 
         | GameEvent PlayerId re
         deriving (Show, Eq, Read, Generic, FromJSON)
+
 
     instance MonadBroadcaster e Identity where
         broadcast _ = return ()
        
     instance MonadSender e Identity where
         sendPlayer  _ _ = return ()
+
 
     class Monad m => MonadBroadcaster e m where
         broadcast :: e -> m ()

@@ -39,10 +39,10 @@ module Game.Backend.TChan where
         }
 
     newBackend :: STM (Backend s r)
-    newBackend = Backend <$> newTChan <*> newTChan
+    newBackend = Backend <$> newBroadcastTChan <*> newTChan
 
     newBackendIO :: IO (Backend s r)
-    newBackendIO = Backend <$> newTChanIO <*> newTChanIO
+    newBackendIO = Backend <$> newBroadcastTChanIO <*> newTChanIO
 
     makeLenses ''Backend
 
