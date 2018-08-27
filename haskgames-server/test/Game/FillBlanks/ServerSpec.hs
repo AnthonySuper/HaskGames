@@ -48,8 +48,7 @@ module Game.FillBlanks.ServerSpec where
                     it "modifies the state" $
                         r `shouldNotBe` oneMore
                     it "adds the judgement" $ do
-                        let cs = r ^. commonState . commonStateCases . at jc
-                        cs `shouldBe` Just "2"
+                        judgementPlayer r jc `shouldBe` Just "2"
                     it "sets the current status to awaiting judgement" $
                         shouldBe
                             (r ^. commonState . commonStateStatus)
@@ -59,8 +58,7 @@ module Game.FillBlanks.ServerSpec where
                     it "modifies the state" $ 
                         r `shouldNotBe` twoMore
                     it "adds the judgement" $ do
-                        let cs = r ^. commonState . commonStateCases . at jc
-                        cs `shouldBe` Just "2"
+                        judgementPlayer r jc `shouldBe` Just "2"
                     it "does not change the current status" $
                         shouldBe
                             (r ^. commonState . commonStateStatus)

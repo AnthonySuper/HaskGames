@@ -23,6 +23,7 @@ module Game.FillBlanks.Server where
         | UpdateScores (Map.Map T.Text Integer)
         | GameWinner T.Text
         | InvalidSend T.Text
+        | DealCards [ResponseCard]
         deriving (Show, Read, Eq, Generic, ToJSON)
 
     data RecvEvent
@@ -33,13 +34,25 @@ module Game.FillBlanks.Server where
           => FillBlanksState
           -> RecvMessage RecvEvent
           -> m FillBlanksState
-    serve current msg =
-        go current msg
+    serve current (GameEvent pid evt) =
+        go current pid evt
         where
             go = 
                 case (current ^. commonState . commonStateStatus) of
-                    AwaitingSubmissions -> serveAwait
-                    AwaitingJudgement -> serveJudgement
+                    AwaitingSubmissions -> serveAwaitEvt
+                    AwaitingJudgement -> serveJudgementEvt
+    serve current (PlayerConnected pid) = do
+        let (cards, ns) = dealCards current
+        sendPlayer pid $ DealCards cards
+        updateScores ns
+        return ns
+
+    updateScores :: (MonadGame m)
+                 => FillBlanksState
+                 -> m ()
+    updateScores s = broadcast scores
+        where
+            scores = s ^. playerState & Map.map (^. playerStateScore)
 
     serveJudgement :: (MonadGame m)
                    => FillBlanksState

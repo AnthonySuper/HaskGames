@@ -89,3 +89,11 @@ module Game.FillBlanks.ServerState where
             currentJudge = s ^. commonState . commonStateJudge
             candidates = Map.keys (s ^. playerState)
             ncand = filter (>= currentJudge) candidates
+        
+    dealCards :: FillBlanksState -> ([ResponseCard], FillBlanksState)
+    dealCards s = (dealt, ns)
+        where
+            respLens :: Lens' (GameState PlayerState CommonState) [ResponseCard]
+            respLens = commonState . commonStateDeck . cardDeckResponses
+            ns = s & respLens %~ (drop 6)
+            dealt = s ^. respLens & take 6
