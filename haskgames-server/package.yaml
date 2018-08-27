@@ -25,6 +25,8 @@ dependencies:
 - haskgames-shared
 - MonadRandom
 - containers
+- stm
+- mtl
 
 library:
   source-dirs: src

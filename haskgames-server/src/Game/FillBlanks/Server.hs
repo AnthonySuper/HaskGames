@@ -1,7 +1,9 @@
 {-# LANGUAGE TemplateHaskell
            , DeriveAnyClass
            , DeriveGeneric
-           , OverloadedStrings #-}
+           , OverloadedStrings
+           , FlexibleContexts
+           , MultiParamTypeClasses #-}
 module Game.FillBlanks.Server where
 
     import GHC.Generics
@@ -19,7 +21,7 @@ module Game.FillBlanks.Server where
     import Control.Monad (foldM)
 
    
-    serve :: (MonadGame m)
+    serve :: (MonadGame ServerEvent m)
           => FillBlanksState
           -> RecvMessage ClientEvent
           -> m FillBlanksState
@@ -35,21 +37,21 @@ module Game.FillBlanks.Server where
         updateScores ns
         return ns
 
-    updateScores :: (MonadGame m)
+    updateScores :: (MonadGame ServerEvent m)
                  => FillBlanksState
                  -> m ()
-    updateScores s = broadcast scores
+    updateScores s = broadcast $ UpdateScores scores
         where
             scores = s ^. playerState & Map.map (^. playerStateScore)
 
-    sendError :: (MonadGame m)
+    sendError :: (MonadGame ServerEvent m)
               => PlayerId
               -> T.Text
               -> FillBlanksState
               -> m FillBlanksState
     sendError p msg s = (sendPlayer p $ InvalidSend msg) >> return s
 
-    serveJudgementEvt :: (MonadGame m)
+    serveJudgementEvt :: (MonadGame ServerEvent m)
                       => FillBlanksState
                       -> PlayerId
                       -> ClientEvent
@@ -71,7 +73,7 @@ module Game.FillBlanks.Server where
         broadcast sr
         foldM (dealCardsG $ nc ^. callArity) ng' (ng' ^. playerState & Map.keys)
     
-    dealCardsG :: (MonadGame m)
+    dealCardsG :: (MonadGame ServerEvent m)
                => Int
                -> FillBlanksState
                -> PlayerId
@@ -81,7 +83,7 @@ module Game.FillBlanks.Server where
         sendPlayer pid $ DealCards nc
         return ng
 
-    serveAwaitEvt :: (MonadGame m)
+    serveAwaitEvt :: (MonadGame ServerEvent m)
                   => FillBlanksState
                   -> PlayerId
                   -> ClientEvent
@@ -89,18 +91,17 @@ module Game.FillBlanks.Server where
     serveAwaitEvt c p evt = go evt
         where
             go (SubmitJudgement j) = addSubmission c p j
-            go _ = do
-               sendError p "You must select a winner" c
+            go _ = sendError p "You must select a winner" c
     
-    addSubmission :: (MonadGame m)
+    addSubmission :: (MonadGame ServerEvent m)
                   => FillBlanksState
                   -> PlayerId
                   -> JudgementCase
                   -> m FillBlanksState
     addSubmission s p j
-        | s `judgedBy` p = do
+        | s `judgedBy` p = 
             sendError p "Judges cannot submit responses" s
-        | s `hasSubmissionFrom` p = do
+        | s `hasSubmissionFrom` p = 
             sendError p "You've already submitted" s
         | otherwise = do
             let updated = addJudgement s p j

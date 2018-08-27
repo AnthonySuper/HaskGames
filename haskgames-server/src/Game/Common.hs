@@ -1,7 +1,12 @@
 {-# LANGUAGE TemplateHaskell
            , DeriveGeneric
            , OverloadedStrings
-           , DeriveAnyClass #-}
+           , DeriveAnyClass
+           , MultiParamTypeClasses
+           , TypeFamilies
+           , FlexibleInstances
+           , ConstraintKinds
+           , FunctionalDependencies #-}
 module Game.Common where
     import GHC.Generics
     import qualified Data.Text as T
@@ -17,7 +22,7 @@ module Game.Common where
         , _commonState :: commonState
         }
         deriving (Show, Eq, Read, Generic)
-
+    
     makeLenses ''GameState
 
     hasPlayer :: PlayerId -> GameState a b -> Bool
@@ -33,10 +38,19 @@ module Game.Common where
         | GameEvent PlayerId re
         deriving (Show, Eq, Read, Generic, FromJSON)
 
-    instance MonadGame Identity where
+    instance MonadBroadcaster e Identity where
         broadcast _ = return ()
-        sendPlayer _ _ = return ()
+       
+    instance MonadSender e Identity where
+        sendPlayer  _ _ = return ()
 
-    class Monad m => MonadGame m where
-        broadcast :: (ToJSON e) => e -> m ()
-        sendPlayer :: (ToJSON e) => PlayerId -> e -> m ()
+    class Monad m => MonadBroadcaster e m where
+        broadcast :: e -> m ()
+       
+    class Monad m => MonadSender e m where
+        sendPlayer :: PlayerId -> e -> m ()
+
+    class Monad m => MonadRecv e m | m -> e where
+        recvEvent :: m (RecvMessage e)
+
+    type MonadGame e m = (MonadBroadcaster e m, MonadSender e m)

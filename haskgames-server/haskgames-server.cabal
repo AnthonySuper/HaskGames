@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bd664bf64a226e602ad21b3983cbf65079c5d7190e43bfd0e5df3dd79cd4e70e
+-- hash: 1a9353f8111e84e5f3f147ce93e055cf2c0c51fe985c7cf535a9cbd94097d33c
 
 name:           haskgames-server
 version:        0.1.0.0
@@ -23,6 +23,7 @@ source-repository head
 
 library
   exposed-modules:
+      Game.Backend.TChan
       Game.Common
       Game.FillBlanks.CardCast
       Game.FillBlanks.CardCast.Internal
@@ -41,6 +42,8 @@ library
     , containers
     , haskgames-shared
     , lens
+    , mtl
+    , stm
     , text
     , wreq
   default-language: Haskell2010
@@ -67,6 +70,8 @@ test-suite haskgames-server-test
     , haskgames-shared
     , hspec
     , lens
+    , mtl
+    , stm
     , text
     , wreq
   default-language: Haskell2010

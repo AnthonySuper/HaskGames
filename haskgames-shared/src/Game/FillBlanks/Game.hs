@@ -19,5 +19,3 @@ module Game.FillBlanks.Game where
         deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
     
     makeLenses ''JudgementCase
-
-  
