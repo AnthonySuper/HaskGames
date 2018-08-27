@@ -29,7 +29,7 @@ module Game.FillBlanks.ServerSpec where
         waitSubmissionsSpec
 
         
-    waitSubmissionsSpec = describe "waiting for submissions" $ do
+    waitSubmissionsSpec = describe "while waiting for submissions" $ do
         let oneMore = makeAwaiting $
                         [ (JudgementCase [] 3, "3")
                         , (JudgementCase [] 4, "4") ] 
@@ -54,10 +54,26 @@ module Game.FillBlanks.ServerSpec where
                         shouldBe
                             (r ^. commonState . commonStateStatus)
                             AwaitingJudgement
+                describe "When there are more judements" $ do
+                    let r = runTest twoMore evt
+                    it "modifies the state" $ 
+                        r `shouldNotBe` twoMore
+                    it "adds the judgement" $ do
+                        let cs = r ^. commonState . commonStateCases . at jc
+                        cs `shouldBe` Just "2"
+                    it "does not change the current status" $
+                        shouldBe
+                            (r ^. commonState . commonStateStatus)
+                            AwaitingSubmissions
             describe "sending from the judge" $ do
                 let jc = JudgementCase [ResponseCard "" FillIn] 1
                 let evt = GameEvent "1" $ SubmitJudgement $ jc
                 let r = runTest oneMore evt
                 it "does not change the state" $
                     r `shouldBe` oneMore
-                    
+            describe "sending from a person who already submitted" $ do
+                let jc = JudgementCase [ResponseCard "" FillIn] 1
+                let evt = GameEvent "3" $ SubmitJudgement $ jc
+                let r = runTest oneMore evt
+                it "does not change the state" $
+                    r `shouldBe` oneMore
