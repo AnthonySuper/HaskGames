@@ -36,9 +36,9 @@ module Main where
     receiveJson c = decode <$> receiveData c
 
     sendJson :: (ToJSON a) => Connection -> a -> IO ()
-    sendJson c m = sendBinaryData c (encode m)
+    sendJson c m = sendTextData c (encode m)
 
-    cards = ["YEFH8"]
+    cards = ["YEFH8","YEFH8","YEFH8","YEFH8","YEFH8","YEFH8","YEFH8","YEFH8"]
     config = Configuration 10 cards "A test game yo"
 
     data NameMessage = NameMessage { nameMessageName :: T.Text }
@@ -51,12 +51,8 @@ module Main where
             Nothing -> putStrLn "ERR: Could not get name" >> getName conn
             Just nm -> return $ nameMessageName nm
 
-    
-  
-
     runBackend :: Backend' -> FillBlanksState -> IO ()
     runBackend b fbs = runReaderT (runGame fbs) b >> return ()
-
 
     createGame' :: MVar Backend' -> T.Text -> IO ()
     createGame' bs t = do
@@ -80,9 +76,7 @@ module Main where
             DirectedMessage i m -> when (id == i) $ sendJson c m
 
     gameWrite :: Connection -> T.Text -> TChan (RecvMessage ClientEvent) -> IO ()
-    gameWrite conn id chan = do
-            threadDelay 10000000
-            catch l disconnect
+    gameWrite conn id chan = catch l disconnect
         where
             l = forever $ do
                 putStrLn $ "RCV: Attempting to read from the connection"
@@ -96,7 +90,6 @@ module Main where
                 print $ "LOG: A client named " `T.append` id `T.append` " just disconnected"
                 atomically $ writeTChan chan (PlayerDisconnected id)
                 
-
     joinGame mv conn id = do
         b <- readMVar mv
         broadcast <- atomically $ dupTChan $ b ^. backendBroadcast
@@ -119,6 +112,8 @@ module Main where
             joinGame mv conn n
         else do
             joinGame mv conn n
+        s <- newEmptyMVar :: IO (MVar ())
+        readMVar s
 
     main = do
         s <- newEmptyMVar

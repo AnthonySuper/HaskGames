@@ -26,14 +26,17 @@ module Game.FillBlanks.Server where
           -> PlayerId
           -> ClientEvent
           -> m FillBlanksState
-    serve current pid evt =
+    serve current pid evt = do
+        logJSON (pid, evt)
         case (current ^. commonState . commonStateStatus) of
             AwaitingSubmissions -> serveAwaitEvt current pid evt
             AwaitingJudgement -> serveJudgementEvt current pid evt
 
     playerConnectState :: (MonadGame ServerEvent m)
                        => FillBlanksState -> PlayerId -> m PlayerState
-    playerConnectState _ _ = return $ PlayerState 0
+    playerConnectState s _ = do
+        logShow ("Getting initial player state with", s) 
+        return $ PlayerState 0
 
     playerWillConnect :: (MonadGame ServerEvent m)
                       => FillBlanksState -> PlayerId -> m FillBlanksState
@@ -42,8 +45,11 @@ module Game.FillBlanks.Server where
     playerDidConnect :: (MonadGame ServerEvent m)
                      => FillBlanksState -> PlayerId -> m FillBlanksState
     playerDidConnect gs pid = do
+        logShow pid
         ns <- dealCardsG 8 gs pid
         updateScores ns
+        sendPlayer pid $
+            StartRound (gs ^. commonState . commonStateJudge) (gs ^. commonState . commonStateCurrentCall)
         return ns
     
     playerDisconnected :: (MonadGame ServerEvent m)

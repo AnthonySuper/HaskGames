@@ -24,4 +24,4 @@ module Game.FillBlanks.Event where
     data ClientEvent
         = SubmitJudgement JudgementCase
         | SelectWinner JudgementCase
-        deriving (Show, Read, Eq, Generic, FromJSON)
+        deriving (Show, Read, Eq, Generic, FromJSON, ToJSON)

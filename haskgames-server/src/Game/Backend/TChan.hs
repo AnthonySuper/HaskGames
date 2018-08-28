@@ -12,6 +12,7 @@ module Game.Backend.TChan where
     
     import GHC.Generics
     import qualified Data.Text as T
+    import qualified Data.Text.IO as TIO
     import qualified Data.Map as M
     import Control.Lens
     import Data.Aeson
@@ -46,16 +47,21 @@ module Game.Backend.TChan where
 
     makeLenses ''Backend
 
-    instance (MonadReader (Backend s r) m, MonadIO m) => MonadBroadcaster s m where
+    instance (MonadIO m, Monad m) => (MonadLog m) where
+        logMessage m = liftIO $ TIO.putStrLn m
+    
+    instance (MonadReader (Backend s r) m, MonadIO m, Show s) => MonadBroadcaster s m where
         broadcast msg = do
             backend <- ask
             let chan = backend ^. backendBroadcast
+            liftIO $ print ("Sending other", msg)
             liftIO $ atomically $ writeTChan chan (BroadcastMessage msg)
 
-    instance (MonadReader (Backend s r) m, MonadIO m) => MonadSender s m where
+    instance (MonadReader (Backend s r) m, MonadIO m, Show s) => MonadSender s m where
         sendPlayer p msg = do
             backend <- ask
             let chan = backend ^. backendBroadcast
+            liftIO $ print ("Sending directed", p, msg)
             liftIO $ atomically $ writeTChan chan (DirectedMessage p msg)
 
     instance (MonadReader (Backend s r) m, MonadIO m) => MonadRecv r m where

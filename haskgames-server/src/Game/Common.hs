@@ -13,6 +13,11 @@ module Game.Common where
     import qualified Data.Map as M
     import Control.Lens
     import Data.Aeson
+    import Data.Text.Encoding (decodeUtf8)
+    import Data.Aeson.Text (encodeToTextBuilder)
+    import Data.Text.Lazy.Builder (toLazyText)
+    import Data.Text.Lazy (toStrict)
+
 
     type PlayerId = T.Text
 
@@ -37,6 +42,11 @@ module Game.Common where
         | GameEvent PlayerId re
         deriving (Show, Eq, Read, Generic, FromJSON)
 
+    logShow :: (Show a, MonadLog m) => a -> m ()
+    logShow = logMessage . T.pack . show
+
+    logJSON :: (ToJSON a, MonadLog m) => a -> m ()
+    logJSON = logMessage . toStrict . toLazyText . encodeToTextBuilder . toJSON
 
     instance MonadBroadcaster e Identity where
         broadcast _ = return ()
@@ -44,6 +54,8 @@ module Game.Common where
     instance MonadSender e Identity where
         sendPlayer  _ _ = return ()
 
+    instance MonadLog Identity where
+        logMessage _ = return ()
 
     class Monad m => MonadBroadcaster e m where
         broadcast :: e -> m ()
@@ -54,4 +66,10 @@ module Game.Common where
     class Monad m => MonadRecv e m | m -> e where
         recvEvent :: m (RecvMessage e)
 
-    type MonadGame e m = (MonadBroadcaster e m, MonadSender e m)
+    class Monad m => MonadLog m where
+        logMessage :: T.Text -> m ()
+
+    type MonadGame e m 
+        = ( MonadBroadcaster e m
+          , MonadSender e m
+          , MonadLog m)
