@@ -47,3 +47,9 @@ module Game.FillBlanks.Deck where
             where
                 calls = concatMap (view cardDeckCalls) cs
                 responses = concatMap (view cardDeckResponses) cs
+
+    dealCallCard :: CardDeck -> (CallCard, CardDeck)
+    dealCallCard d = (nc, nd)
+        where
+            nd = d & cardDeckCalls %~ tail
+            nc = d ^. cardDeckCalls & head

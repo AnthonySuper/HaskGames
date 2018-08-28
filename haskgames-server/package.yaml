@@ -27,9 +27,18 @@ dependencies:
 - containers
 - stm
 - mtl
+- async
+- websockets
 
 library:
   source-dirs: src
+
+executable:
+  main: Main.hs
+  source-dirs: 
+    - src
+    - .
+
 
 tests:
   haskgames-server-test:

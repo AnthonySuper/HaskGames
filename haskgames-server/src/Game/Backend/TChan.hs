@@ -17,7 +17,7 @@ module Game.Backend.TChan where
     import Data.Aeson
     import Control.Concurrent.STM.TChan
     import Game.Common
-    import Control.Monad.Reader
+    import Control.Monad.Reader.Class
     import Control.Monad.IO.Class
     import Control.Monad.STM
 

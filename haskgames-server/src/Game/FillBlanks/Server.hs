@@ -19,7 +19,7 @@ module Game.FillBlanks.Server where
     import Game.Common
     import Data.Maybe
     import Control.Monad (foldM)
-
+    import qualified Game.Backend.Common as GBC
    
     serve :: (MonadGame ServerEvent m)
           => FillBlanksState
@@ -52,7 +52,6 @@ module Game.FillBlanks.Server where
         | (isJudge s p) = startRound s'
         | otherwise = return s'
     
-
     updateScores :: (MonadGame ServerEvent m)
                  => FillBlanksState
                  -> m ()
@@ -127,3 +126,10 @@ module Game.FillBlanks.Server where
                 return $ 
                     updated & commonState . commonStateStatus .~ AwaitingJudgement
             else return updated
+
+    instance GBC.Game PlayerState CommonState ServerEvent ClientEvent where
+        serve = serve
+        playerConnectState = playerConnectState
+        playerWillConnect = playerWillConnect
+        playerDidConnect = playerDidConnect
+        playerDisconnected = playerDisconnected
