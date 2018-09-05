@@ -11,7 +11,7 @@ module Game.Common where
     import GHC.Generics
     import qualified Data.Text as T
     import qualified Data.Map as M
-    import Control.Lens
+    import Control.Lens hiding ((.=))
     import Data.Aeson
     import Data.Text.Encoding (decodeUtf8)
     import Data.Aeson.Text (encodeToTextBuilder)
@@ -45,8 +45,10 @@ module Game.Common where
     logShow :: (Show a, MonadLog m) => a -> m ()
     logShow = logMessage . T.pack . show
 
-    logJSON :: (ToJSON a, MonadLog m) => a -> m ()
-    logJSON = logMessage . toStrict . toLazyText . encodeToTextBuilder . toJSON
+    logMessage :: (MonadLog m) => T.Text -> m ()
+    logMessage m = logJSON json
+        where
+            json = object ["message" .= toJSON m]
 
     instance MonadBroadcaster e Identity where
         broadcast _ = return ()
@@ -55,7 +57,7 @@ module Game.Common where
         sendPlayer  _ _ = return ()
 
     instance MonadLog Identity where
-        logMessage _ = return ()
+        logJSON _ = return ()
 
     class Monad m => MonadBroadcaster e m where
         broadcast :: e -> m ()
@@ -66,10 +68,19 @@ module Game.Common where
     class Monad m => MonadRecv e m | m -> e where
         recvEvent :: m (RecvMessage e)
 
-    class Monad m => MonadLog m where
-        logMessage :: T.Text -> m ()
+    class Monad m => MonadStateTell s m | m -> s where
+        tellState :: s -> m ()
 
-    type MonadGame e m 
+    class Monad m => MonadLog m where
+        logJSON :: (ToJSON a) => a -> m ()
+
+    type MonadGame' s c m
+        = ( MonadBroadcaster s m 
+          , MonadSender s m 
+          , MonadLog m 
+          , MonadRecv c m )
+    
+    type MonadGameOutput e m 
         = ( MonadBroadcaster e m
           , MonadSender e m
           , MonadLog m)

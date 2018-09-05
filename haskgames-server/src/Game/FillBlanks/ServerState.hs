@@ -38,70 +38,89 @@ module Game.FillBlanks.ServerState where
 
     makeLenses ''CommonState
 
+    data Player
+        = Player
+        { _playerScore :: Integer }
+        deriving (Show, Read, Eq, Generic)
+
+    makeLenses ''Player
+
+    data Game
+        = Game
+        { _gameJudge :: PlayerId
+        , _gameWinScore :: Integer
+        , _gameFullDeck :: CardDeck
+        , _gameCurrentDeck :: CardDeck
+        , _gameCases :: Map.Map JudgementCase PlayerId
+        , _gameStatus :: GameStatus
+        , _gameCurrentCall :: Maybe CallCard
+        , _gameActivePlayers :: Map.Map PlayerId Player
+        }
+        deriving (Show, Read, Eq, Generic)
+
+    makeLenses ''Game
+
     type FillBlanksState = GameState PlayerState CommonState
 
-    winner :: FillBlanksState -> Maybe PlayerId
+    winner :: Game -> Maybe PlayerId
     winner gs = fst <$> listToMaybe (Map.toList winners)
         where
-            winners = Map.filter isWinner (gs ^. playerState)
-            winScore = gs ^. commonState . commonStateWinScore
-            isWinner ps = (ps ^. playerStateScore) >= winScore
+            winners = Map.filter isWinner (gs ^. gameActivePlayers)
+            isWinner ps = (ps ^. playerScore) >= (gs ^. gameWinScore)
 
-    judgementPlayer :: FillBlanksState -> JudgementCase -> Maybe PlayerId
+    judgementPlayer :: Game -> JudgementCase -> Maybe PlayerId
     judgementPlayer gs c = 
-        gs ^. commonState . commonStateCases . at c
+        gs ^. gameCases . at c 
 
-    -- | Increase the score of the player with the given id
-    -- Note: Silently does nothing if said player doesn't exist
-    increaseScore :: FillBlanksState -> PlayerId -> FillBlanksState
-    increaseScore g i =
-        playerState . at i . _Just . playerStateScore %~ (+1) $ g
+    increaseScore :: Game -> PlayerId -> Game
+    increaseScore gs i =
+        gs & gameActivePlayers . at i . _Just . playerScore %~ (+1)
+
 
     -- | Increase the score of the player with the given Judgement case
     -- If that player no longer exists, or the judgment case is invalid, returns
     -- @Nothing@. This may be made more explicit in the future. 
-    increaseScoreJudgement :: FillBlanksState -> JudgementCase -> Maybe FillBlanksState
     increaseScoreJudgement gs j = increaseScore gs <$> judgementPlayer gs j
 
-    addJudgement :: FillBlanksState -> PlayerId -> JudgementCase -> FillBlanksState
-    addJudgement c p j = c & commonState . commonStateCases . at j .~ Just p
+    addJudgement :: Game -> PlayerId -> JudgementCase -> Game
+    addJudgement c p j = c & gameCases . at j .~ Just p
 
-    judgeable :: FillBlanksState -> Bool
+    judgeable :: Game -> Bool
     judgeable s = judgementSize >= (playerSize - 1)
         where
-            judgementSize = Map.size (s ^. commonState . commonStateCases)
-            playerSize = Map.size (s ^. playerState)
+            judgementSize = Map.size $ s ^. gameCases
+            playerSize = Map.size $ s ^. gameActivePlayers
 
-    isJudge :: FillBlanksState -> PlayerId -> Bool
-    isJudge c p = (c ^. commonState . commonStateJudge) == p
+    isJudge :: Game -> PlayerId -> Bool
+    isJudge c p = (c ^. gameJudge) == p
 
     judgedBy = isJudge
 
-    hasSubmissionFrom :: FillBlanksState -> PlayerId -> Bool
-    hasSubmissionFrom s p = p `elem` (s ^. commonState . commonStateCases & Map.elems)
+    hasSubmissionFrom :: Game -> PlayerId -> Bool
+    hasSubmissionFrom s p = p `elem` (s ^. gameCases & Map.elems)
 
-    nextJudge :: FillBlanksState -> FillBlanksState
-    nextJudge s = s & commonState . commonStateJudge .~ newJudge
+    nextJudge :: Game -> Game
+    nextJudge s = s & gameJudge .~ newJudge
         where
             newJudge = case ncand of
                 [] -> head candidates
                 x : xs -> x
-            currentJudge = s ^. commonState . commonStateJudge
-            candidates = Map.keys (s ^. playerState)
+            currentJudge = s ^. gameJudge
+            candidates = Map.keys (s ^. gameActivePlayers)
             ncand = filter (>= currentJudge) candidates
         
-    dealCards :: Int -> FillBlanksState -> ([ResponseCard], FillBlanksState)
+    dealCards :: Int -> Game -> ([ResponseCard], Game)
     dealCards i s = (dealt, ns)
         where
-            respLens :: Lens' (GameState PlayerState CommonState) [ResponseCard]
-            respLens = commonState . commonStateDeck . cardDeckResponses
+            respLens :: Lens' Game [ResponseCard]
+            respLens = gameCurrentDeck . cardDeckResponses
             ns = s & respLens %~ (drop i)
             dealt = s ^. respLens & take i
 
-    nextCall :: FillBlanksState -> (CallCard, FillBlanksState)
+    nextCall :: Game -> (CallCard, Game)
     nextCall s = (nc, ns)
         where
-            callLens :: Lens' (GameState PlayerState CommonState) [CallCard]
-            callLens = commonState . commonStateDeck . cardDeckCalls
+            callLens :: Lens' Game [CallCard]
+            callLens = gameCurrentDeck . cardDeckCalls
             ns = s & callLens %~ tail
             nc = s ^. callLens & head 

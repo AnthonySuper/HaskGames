@@ -14,54 +14,45 @@ module Game.FillBlanks.ServerStateSpec where
 
 
     spec :: Spec 
-    spec = do
+    spec =
         scoringSpec
-        judgementSpec
 
-    defaultPlayers = playersToPlayerState $ map PlayerState [0, 2, 1]
-    defaultGame = GameState defaultPlayers $ CommonState "1" 2 mempty mempty AwaitingSubmissions defaultCard
-    defaultCard = CallCard "" 1 FillIn
+    defaultPlayers = playersToPlayerState $ map Player [0, 2, 1]
+    defaultGame = Game "1" 2 mempty mempty mempty AwaitingSubmissions defaultCard defaultPlayers
+    defaultCard = Just $ CallCard "" 1 FillIn
 
     scoringSpec = do 
-        winnerSpec
+        judgementSpec
         increaseScoreSpec
 
     increaseScoreSpec = describe "increaseScore" $ do
         it "increases if the key exists" $ do
             let ng = increaseScore defaultGame "1"
-            let ps = ng ^. playerState . at "1" <&> view playerStateScore :: Maybe Integer
+            let ps = ng ^. gameActivePlayers . at "1" <&> view playerScore :: Maybe Integer
             ps `shouldBe` Just 1
         it "does nothing if the key doesn't" $ do
             increaseScore defaultGame "123123" `shouldBe` defaultGame
-
-    winnerSpec = describe "winner" $ do
-        it "works when there is a winner" $ do
-            let gs = GameState defaultPlayers $ CommonState "1" 2 mempty mempty AwaitingSubmissions defaultCard
-            winner gs `shouldBe` Just "2"
-        it "works where there is not a winner" $ do
-            let gs = GameState defaultPlayers $ CommonState "1" 3 mempty mempty AwaitingSubmissions defaultCard
-            winner gs `shouldBe` Nothing
                 
-    judgementSpec = describe "judgement cases" $ do
+    judgementSpec = do
         let cs = Map.fromList [ (JudgementCase [] 1, "1")
                             , (JudgementCase [] 2, "2")
                             , (JudgementCase [] 3, "3") ]
-        let gs = GameState defaultPlayers $ CommonState "1" 3 mempty cs undefined defaultCard
+        let gs = Game "1" 3 mempty mempty cs AwaitingSubmissions Nothing defaultPlayers
 
         describe "judgementPlayer" $ do
             let jp = judgementPlayer gs
-            it "finds if it exists" $ 
+            it "finds the player if the player exists" $ 
                 jp (JudgementCase [] 1) `shouldBe` Just "1"
-            it "does not find if it does not exist" $
+            it "returns nothing if the player does not exist" $
                 jp (JudgementCase [] 10) `shouldBe` Nothing
         describe "increaseJudgementScore" $ do
             let iscore = increaseScoreJudgement gs
-            it "modifies if the judgment exists" $
+            it "modifies the state if the player exists" $
                 iscore (JudgementCase [] 1) `shouldNotBe` Just gs
             it "returns nothing if the judgement doesn't exist" $
                 iscore (JudgementCase [] 10) `shouldBe` Nothing
         describe "judgeable" $ do
-            it "works if there's enough cases" $
+            it "is true if there are enough cases" $
                 judgeable gs `shouldBe` True
-            it "breaks if there is not" $
+            it "is false if there aren't enough cases" $
                 judgeable defaultGame `shouldBe` False

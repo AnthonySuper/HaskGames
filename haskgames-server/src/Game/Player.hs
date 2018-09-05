@@ -1,4 +1,3 @@
-
 {-# LANGUAGE DeriveAnyClass, DeriveGeneric #-}
 
 module Game.Player where

@@ -28,7 +28,9 @@ module Main where
 
     import Data.Aeson
 
-    type Backend' = Backend ServerEvent ClientEvent
+    {-
+
+    type Backend' = Backend ServerEvent ClientEvent ()
 
     type ReaderType a = ReaderT Backend' IO a
 
@@ -120,3 +122,7 @@ module Main where
         print "Starting run of server"
         runServer "0.0.0.0" 9000 $ serverApp s
 
+-}
+
+    main = do 
+        putStrLn "Whatever, man!"
