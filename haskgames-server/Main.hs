@@ -33,7 +33,7 @@ module Main where
 
     
 
-    type Backend' = Backend ServerEvent ClientEvent GamePublic
+    type Backend' = Backend ServerEvent ClientEvent GameInfo
 
     type ReaderType a = ReaderT Backend' IO a
 
@@ -56,7 +56,6 @@ module Main where
         r <- readTVar s
         modifyTVar s (+1)
         return r 
-
 
     gameRead :: Connection -> T.Text -> TChan (SendMessage ServerEvent) -> IO ()
     gameRead c id chan = forever $ do

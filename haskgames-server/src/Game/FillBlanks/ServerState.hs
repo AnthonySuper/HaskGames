@@ -14,14 +14,10 @@ module Game.FillBlanks.ServerState where
     import qualified Data.Map as Map
     import Game.FillBlanks.Deck
     import Game.FillBlanks.Game
+    import Game.Basic
     import Game.Common
     import Data.Maybe
     import Control.Monad.State.Class
-
-    data GameStatus
-        = AwaitingSubmissions
-        | AwaitingJudgement
-        deriving (Show, Read, Eq, Ord, Enum, Generic)
 
     data Player
         = Player
@@ -45,14 +41,6 @@ module Game.FillBlanks.ServerState where
 
     makeLenses ''Game
 
-    data GamePublic
-        = GamePublic
-        { _gamePublicDecks :: [T.Text]
-        , _gamePublicScores :: Map.Map PlayerId Integer
-        }
-        deriving (Show, Read, Eq, Generic)
-
-    makeLenses ''GamePublic
 
     winner :: Game -> Maybe PlayerId
     winner gs = fst <$> listToMaybe (Map.toList winners)
@@ -110,15 +98,15 @@ module Game.FillBlanks.ServerState where
         
     dealCards :: (MonadState Game m) 
               => Int -> m [ResponseCard] 
-    dealCards i = let l = gameCurrentDeck . cardDeckResponses in
+    dealCards i = 
         (use l <&> take i) <* (l %= drop i)
+        where
+            l = gameCurrentDeck . cardDeckResponses
         
     extractCall :: (MonadState Game m) => m CallCard
-    extractCall = do
-        let l = gameCurrentDeck . cardDeckCalls
-        s <- use l <&> head
-        l %= tail 
-        return s
+    extractCall = (use l <&> head) <* (l %= tail)
+        where
+            l = gameCurrentDeck . cardDeckCalls
     
     playerScores :: Game -> Map.Map PlayerId Integer
     playerScores g = g ^. gameActivePlayers & (Map.map (^. playerScore))

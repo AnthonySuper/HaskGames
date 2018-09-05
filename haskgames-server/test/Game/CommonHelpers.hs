@@ -3,6 +3,7 @@ module Game.CommonHelpers where
     import Game.Common
     import qualified Data.Text as T
     import qualified Data.Map as Map
+    import Game.Basic
 
     playersToPlayerState :: [ps] -> Map.Map PlayerId ps
     playersToPlayerState ps = Map.fromList pairs

@@ -22,7 +22,7 @@ module Game.FillBlanks.Server where
     import qualified Game.Backend.Common as GBC
     import Control.Monad.State.Strict
 
-    serve :: MonadGame ServerEvent ClientEvent GamePublic m
+    serve :: MonadGame ServerEvent ClientEvent GameInfo m
           => Game -> m ()
     serve s = recvEvent >>= logId >>= go
         where
@@ -37,13 +37,12 @@ module Game.FillBlanks.Server where
         case (current ^. gameStatus) of
             AwaitingSubmissions -> serveAwaitEvt current pid evt
             AwaitingJudgement -> serveJudgementEvt current pid evt
-
    
     connectPlayer pid s = do
         let s' = s & gameActivePlayers . at pid .~ (Just $ Player 0)
         updateScores s'
         ns <- dealCardsG 6 s' pid
-        modifyPublic (gamePublicScores .~ (playerScores ns))
+        modifyPublic (gameInfoScores .~ (playerScores ns))
         return ns
 {-
  playerConnectState :: (MonadGame ServerEvent m)

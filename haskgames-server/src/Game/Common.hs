@@ -12,14 +12,13 @@ module Game.Common where
     import qualified Data.Text as T
     import qualified Data.Map as M
     import Control.Lens hiding ((.=))
+    import Game.Basic
     import Data.Aeson
     import Data.Text.Encoding (decodeUtf8)
     import Data.Aeson.Text (encodeToTextBuilder)
     import Data.Text.Lazy.Builder (toLazyText)
     import Data.Text.Lazy (toStrict)
 
-
-    type PlayerId = T.Text
 
     data GameState playerState commonState
         = GameState
