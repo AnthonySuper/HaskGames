@@ -20,6 +20,7 @@ module Game.FillBlanks.Server where
     import Data.Maybe
     import Control.Monad (foldM)
     import qualified Game.Backend.Common as GBC
+    import Control.Monad.State.Strict
 
     serve :: MonadGame ServerEvent ClientEvent GamePublic m
           => Game -> m ()
@@ -39,11 +40,11 @@ module Game.FillBlanks.Server where
 
    
     connectPlayer pid s = do
-        logShow ("Connecting player", pid)
         let s' = s & gameActivePlayers . at pid .~ (Just $ Player 0)
         updateScores s'
-        -- modifyPublic (gamePublicScores .~ (playerScores s))
-        return s'
+        ns <- dealCardsG 6 s' pid
+        modifyPublic (gamePublicScores .~ (playerScores ns))
+        return ns
 {-
  playerConnectState :: (MonadGame ServerEvent m)
                        => FillBlanksState -> PlayerId -> m PlayerState
@@ -90,16 +91,14 @@ module Game.FillBlanks.Server where
         | otherwise = sendError p "You must select a winner" c
         
     startRound g = do
-        let ng = g & (gameCases .~ mempty)
-                   & nextJudge
-        let (nc, ng') = nextCall ng
+        let (nc, ng') = runState (clearCases >> nextJudge >> extractCall) g
         updateScores ng'
-        let sr = StartRound (g ^. gameJudge) nc
+        let sr = StartRound (ng' ^. gameJudge) nc
         broadcast sr
         foldM (dealCardsG $ nc ^. callArity) ng' (ng' ^. gameActivePlayers & Map.keys)
     
     dealCardsG i g pid = do
-        let (nc, ng) = dealCards i g
+        let (nc, ng) = runState (dealCards i) g
         sendPlayer pid $ DealCards nc
         return ng
 

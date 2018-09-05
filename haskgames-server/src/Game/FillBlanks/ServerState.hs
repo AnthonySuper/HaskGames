@@ -1,16 +1,22 @@
-{-# LANGUAGE TemplateHaskell, DeriveAnyClass, DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell
+           , DeriveAnyClass
+           , DeriveGeneric
+           , FlexibleContexts
+           , RankNTypes
+           , NoMonomorphismRestriction #-}
 module Game.FillBlanks.ServerState where
 
     import GHC.Generics
     import qualified Data.Text as T
     import Control.Lens
-    import Data.Aeson
+    import Data.Aeson hiding ((.=))
     import Data.Semigroup
     import qualified Data.Map as Map
     import Game.FillBlanks.Deck
     import Game.FillBlanks.Game
     import Game.Common
     import Data.Maybe
+    import Control.Monad.State.Class
 
     data GameStatus
         = AwaitingSubmissions
@@ -85,31 +91,34 @@ module Game.FillBlanks.ServerState where
     hasSubmissionFrom :: Game -> PlayerId -> Bool
     hasSubmissionFrom s p = p `elem` (s ^. gameCases & Map.elems)
 
-    nextJudge :: Game -> Game
-    nextJudge s = s & gameJudge .~ newJudge
+    
+    clearCases :: MonadState Game m => m ()
+    clearCases = gameCases .= mempty
+
+
+    nextJudge :: MonadState Game m => m ()
+    nextJudge = do 
+        players <- use gameActivePlayers <&> Map.keys
+        judge <- use gameJudge
+        let ncand = filter (>= judge) players
+        gameJudge .= (headBot ncand players)
         where
-            newJudge = case ncand of
-                [] -> head candidates
-                x : xs -> x
-            currentJudge = s ^. gameJudge
-            candidates = Map.keys (s ^. gameActivePlayers)
-            ncand = filter (>= currentJudge) candidates
+            headBot a b = case a of
+                [] -> head b
+                x:xs -> x 
+            
         
-    dealCards :: Int -> Game -> ([ResponseCard], Game)
-    dealCards i s = (dealt, ns)
-        where
-            respLens :: Lens' Game [ResponseCard]
-            respLens = gameCurrentDeck . cardDeckResponses
-            ns = s & respLens %~ (drop i)
-            dealt = s ^. respLens & take i
-
-    nextCall :: Game -> (CallCard, Game)
-    nextCall s = (nc, ns)
-        where
-            callLens :: Lens' Game [CallCard]
-            callLens = gameCurrentDeck . cardDeckCalls
-            ns = s & callLens %~ tail
-            nc = s ^. callLens & head
-
+    dealCards :: (MonadState Game m) 
+              => Int -> m [ResponseCard] 
+    dealCards i = let l = gameCurrentDeck . cardDeckResponses in
+        (use l <&> take i) <* (l %= drop i)
+        
+    extractCall :: (MonadState Game m) => m CallCard
+    extractCall = do
+        let l = gameCurrentDeck . cardDeckCalls
+        s <- use l <&> head
+        l %= tail 
+        return s
+    
     playerScores :: Game -> Map.Map PlayerId Integer
     playerScores g = g ^. gameActivePlayers & (Map.map (^. playerScore))
