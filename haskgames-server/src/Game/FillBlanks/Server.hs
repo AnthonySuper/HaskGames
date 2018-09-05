@@ -3,7 +3,8 @@
            , DeriveGeneric
            , OverloadedStrings
            , FlexibleContexts
-           , MultiParamTypeClasses #-}
+           , MultiParamTypeClasses
+           , NoMonomorphismRestriction #-}
 module Game.FillBlanks.Server where
 
     import GHC.Generics
@@ -17,6 +18,7 @@ module Game.FillBlanks.Server where
     import Game.FillBlanks.ServerState
     import Game.FillBlanks.Event
     import Game.Common
+    import Game.Basic
     import Data.Maybe
     import Control.Monad (foldM)
     import qualified Game.Backend.Common as GBC
@@ -31,7 +33,6 @@ module Game.FillBlanks.Server where
             go (PlayerConnected pid) = connectPlayer pid s >>= serve
             logId i = logJSON i >> return i
 
-
     serveEvent current pid evt = do
         logJSON (pid, evt)
         case (current ^. gameStatus) of
@@ -39,47 +40,12 @@ module Game.FillBlanks.Server where
             AwaitingJudgement -> serveJudgementEvt current pid evt
    
     connectPlayer pid s = do
-        let s' = s & gameActivePlayers . at pid .~ (Just $ Player 0)
-        updateScores s'
+        let s' = s & gameActivePlayers . at pid .~ (Just $ PersonalState [] SittingOut 0)
         ns <- dealCardsG 6 s' pid
         modifyPublic (gameInfoScores .~ (playerScores ns))
         return ns
-{-
- playerConnectState :: (MonadGame ServerEvent m)
-                       => FillBlanksState -> PlayerId -> m PlayerState
-    playerConnectState s _ = do
-        logShow ("Getting initial player state with", s) 
-        return $ PlayerState 0
-
-    playerWillConnect :: (MonadGame ServerEvent m)
-                      => FillBlanksState -> PlayerId -> m FillBlanksState
-    playerWillConnect s _ = return s
-
-    playerDidConnect :: (MonadGame ServerEvent m)
-                     => FillBlanksState -> PlayerId -> m FillBlanksState
-    playerDidConnect gs pid = do
-        logShow pid
-        ns <- dealCardsG 8 gs pid
-        updateScores ns
-        sendPlayer pid $
-            StartRound (gs ^. commonState . commonStateJudge) (gs ^. commonState . commonStateCurrentCall)
-        return ns
-    
-    playerDisconnected :: (MonadGame ServerEvent m)
-                       => FillBlanksState -> FillBlanksState -> PlayerId -> m FillBlanksState
-    playerDisconnected s s' p
-        | (isJudge s p) = startRound s'
-        | otherwise = return s'
-
--}
-    
-    updateScores s = broadcast $ UpdateScores scores
-        where
-            scores = s ^. gameActivePlayers & Map.map (^. playerScore)
-
 
     sendError p msg s = (sendPlayer p $ InvalidSend msg) >> return s
-
 
     serveJudgementEvt c p e
         | (isJudge c p) = case e of
@@ -90,16 +56,12 @@ module Game.FillBlanks.Server where
         | otherwise = sendError p "You must select a winner" c
         
     startRound g = do
-        let (nc, ng') = runState (clearCases >> nextJudge >> extractCall) g
-        updateScores ng'
-        let sr = StartRound (ng' ^. gameJudge) nc
-        broadcast sr
-        foldM (dealCardsG $ nc ^. callArity) ng' (ng' ^. gameActivePlayers & Map.keys)
+        let (nc, ng') = runState (nextTurn) g
+        return ng'
     
     dealCardsG i g pid = do
         let (nc, ng) = runState (dealCards i) g
-        sendPlayer pid $ DealCards nc
-        return ng
+        sendUpdates ng
 
     serveAwaitEvt c p = go
         where
@@ -114,8 +76,18 @@ module Game.FillBlanks.Server where
         | otherwise = do
             let updated = addJudgement s p j
             if judgeable updated then do
-                broadcast $ 
-                    StartJudgement (Map.keys $ updated ^. gameCases)
-                return $ 
-                    updated & gameStatus .~ AwaitingJudgement
-            else return updated
+                let updated' = updated & gameStatus .~ AwaitingJudgement
+                sendUpdates updated'
+            else sendUpdates updated 
+             
+    sendUpdate :: MonadSender ServerEvent m
+               => Game -> PlayerId -> m ()
+    sendUpdate g id = do
+        let pinfolens = gameActivePlayers . at id 
+        let mby = g ^?! pinfolens 
+        let evt = UpdateState (toPublicGame g) (fromJust mby)
+        sendPlayer id evt
+
+    sendUpdates g = do
+        mapM (sendUpdate g) (g ^. gameActivePlayers & Map.keys)
+        return g

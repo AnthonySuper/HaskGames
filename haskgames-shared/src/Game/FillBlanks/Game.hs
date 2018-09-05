@@ -71,12 +71,15 @@ module Game.FillBlanks.Game where
         { _publicGameActivePlayers :: Map.Map PlayerId ImpersonalState
         , _publicGameCurrentCall :: CallCard
         , _publicGameStatus :: GameStatus
-        }
+        , _publicGameJudgements :: [JudgementCase]
+        } deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
+    makeLenses ''PublicGame 
+    
     data GameInfo
         = GameInfo
         { _gameInfoDecks :: [T.Text]
-        , _gameInfoScores :: Map.Map PlayerId Integer
+        , _gameInfoScores :: Map.Map PlayerId Int
         }
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 

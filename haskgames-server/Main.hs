@@ -31,8 +31,6 @@ module Main where
 
     import Data.Aeson
 
-    
-
     type Backend' = Backend ServerEvent ClientEvent GameInfo
 
     type ReaderType a = ReaderT Backend' IO a
@@ -47,8 +45,9 @@ module Main where
 
     game = do
         d <- cardCastsToDeck cards
+        let c = d ^? cardDeckCalls . _head
         return $
-            Game "0" 10 d d mempty AwaitingSubmissions Nothing mempty
+            Game 10 d d AwaitingSubmissions c mempty
 
     counter = newTVarIO (0 :: Int)
 
@@ -100,16 +99,9 @@ module Main where
         forkIO $ runGameBackend' game backend
         return backend
 
-    events = [ StartRound "playerId" (CallCard "Who did it? _." 1 FillIn) 
-             , StartJudgement [JudgementCase mempty 1]
-             , RoundWinner (JudgementCase mempty 1) "playerId"
-             , UpdateScores mempty
-             , GameWinner "playerId"
-             , InvalidSend "That's incorrect"
-             , DealCards [ResponseCard "Alex Jones" FillIn] ]
+ 
     main = do
         g <- game 
         c <- counter
         s <- runGameBackend g
-        print $ map encode events 
         runServer "0.0.0.0" 9000 $ serverApp s c

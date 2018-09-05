@@ -19,7 +19,6 @@ module Game.Common where
     import Data.Text.Lazy.Builder (toLazyText)
     import Data.Text.Lazy (toStrict)
 
-
     data GameState playerState commonState
         = GameState
         { _playerState :: M.Map PlayerId playerState

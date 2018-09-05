@@ -12,13 +12,8 @@ module Game.FillBlanks.Event where
 
 
     data ServerEvent
-        = StartRound T.Text CallCard
-        | StartJudgement [JudgementCase]
-        | RoundWinner JudgementCase T.Text
-        | UpdateScores (Map.Map T.Text Integer)
-        | GameWinner T.Text
+        = UpdateState PublicGame PersonalState 
         | InvalidSend T.Text
-        | DealCards [ResponseCard]
         deriving (Show, Read, Eq, Generic, ToJSON)
 
     data ClientEvent

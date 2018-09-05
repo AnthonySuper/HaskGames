@@ -13,9 +13,7 @@ module Game.FillBlanks.Coordinator where
     import Game.Common
     import Game.FillBlanks.ServerState
     import Data.Foldable
-    import Data.Maybe 
-
-
+    import Data.Maybe
 
     cardCastsToDeck :: [String] -> IO CardDeck
     cardCastsToDeck s = do
