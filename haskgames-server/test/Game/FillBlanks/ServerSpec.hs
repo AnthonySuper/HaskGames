@@ -31,7 +31,7 @@ module Game.FillBlanks.ServerSpec where
                         [ (JudgementCase [] 3, "3")
                         , (JudgementCase [] 4, "4") ] 
         let twoMore = makeAwaiting [ (JudgementCase [] 3, "3") ]
-        let runTest i p e = runIdentity $ serve i p e
+        let runTest i p e = runIdentity $ serveEvent i p e
         describe "attempted judgement" $
             it "does nothing when sent from the judge" $ do
                 let evt = SelectWinner $ JudgementCase [ResponseCard "" FillIn] 1 

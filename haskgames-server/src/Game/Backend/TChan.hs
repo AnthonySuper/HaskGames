@@ -57,6 +57,7 @@ module Game.Backend.TChan where
         broadcast msg = do
             backend <- ask
             let chan = backend ^. backendBroadcast
+            liftIO $ print ("Trying to broadcast a message", msg)
             liftIO $ atomically $ writeTChan chan (BroadcastMessage msg)
 
     instance (MonadReader (Backend s r t) m, MonadIO m, Show s) => MonadSender s m where
@@ -71,8 +72,11 @@ module Game.Backend.TChan where
             let chan = backend ^. backendRecv
             liftIO $ atomically $ readTChan chan
         
-    instance (MonadReader (Backend s r t) m, MonadIO m) => MonadStateTell t m where
-        tellState s = do
+    instance (MonadReader (Backend s r t) m, MonadIO m) => MonadGamePublic t m where
+        tellPublic s = do
             backend <- ask
             liftIO $ atomically $ 
                 writeTVar (backend ^. backendState) $ Just s
+        modifyPublic f = do
+            backend <- ask
+            liftIO $ atomically $ modifyTVar (backend ^. backendState) $ fmap f

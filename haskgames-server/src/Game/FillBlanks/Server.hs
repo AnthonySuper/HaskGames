@@ -21,14 +21,29 @@ module Game.FillBlanks.Server where
     import Control.Monad (foldM)
     import qualified Game.Backend.Common as GBC
 
-    serve current pid evt = do
+    serve :: MonadGame ServerEvent ClientEvent GamePublic m
+          => Game -> m ()
+    serve s = recvEvent >>= logId >>= go
+        where
+            go (GameEvent pid evt) =
+                serveEvent s pid evt >>= serve
+            go (PlayerConnected pid) = connectPlayer pid s >>= serve
+            logId i = logJSON i >> return i
+
+
+    serveEvent current pid evt = do
         logJSON (pid, evt)
         case (current ^. gameStatus) of
             AwaitingSubmissions -> serveAwaitEvt current pid evt
             AwaitingJudgement -> serveJudgementEvt current pid evt
 
    
-
+    connectPlayer pid s = do
+        logShow ("Connecting player", pid)
+        let s' = s & gameActivePlayers . at pid .~ (Just $ Player 0)
+        updateScores s'
+        -- modifyPublic (gamePublicScores .~ (playerScores s))
+        return s'
 {-
  playerConnectState :: (MonadGame ServerEvent m)
                        => FillBlanksState -> PlayerId -> m PlayerState

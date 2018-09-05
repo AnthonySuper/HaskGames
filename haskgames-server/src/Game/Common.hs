@@ -40,7 +40,7 @@ module Game.Common where
         = PlayerConnected PlayerId
         | PlayerDisconnected PlayerId
         | GameEvent PlayerId re
-        deriving (Show, Eq, Read, Generic, FromJSON)
+        deriving (Show, Eq, Read, Generic, FromJSON, ToJSON)
 
     logShow :: (Show a, MonadLog m) => a -> m ()
     logShow = logMessage . T.pack . show
@@ -68,17 +68,19 @@ module Game.Common where
     class Monad m => MonadRecv e m | m -> e where
         recvEvent :: m (RecvMessage e)
 
-    class Monad m => MonadStateTell s m | m -> s where
-        tellState :: s -> m ()
+    class Monad m => MonadGamePublic s m | m -> s where
+        tellPublic :: s -> m ()
+        modifyPublic :: (s -> s) -> m ()
 
     class Monad m => MonadLog m where
         logJSON :: (ToJSON a) => a -> m ()
 
-    type MonadGame' s c m
+    type MonadGame s c t m
         = ( MonadBroadcaster s m 
           , MonadSender s m 
           , MonadLog m 
-          , MonadRecv c m )
+          , MonadRecv c m 
+          , MonadGamePublic t m)
     
     type MonadGameOutput e m 
         = ( MonadBroadcaster e m

@@ -16,11 +16,14 @@ module Main where
     import Game.FillBlanks.Event
     import Game.FillBlanks.Server
     import Game.FillBlanks.ServerState
+    import Game.FillBlanks.Game
+    import Game.FillBlanks.Deck
     import Game.Common
     import GHC.Generics
     import Control.Lens
     import Control.Concurrent.STM
     import Control.Concurrent.STM.TChan
+    import Control.Concurrent.STM.TVar
     import qualified Data.Text as T
     import Control.Monad
     import Control.Exception
@@ -28,9 +31,9 @@ module Main where
 
     import Data.Aeson
 
-    {-
+    
 
-    type Backend' = Backend ServerEvent ClientEvent ()
+    type Backend' = Backend ServerEvent ClientEvent GamePublic
 
     type ReaderType a = ReaderT Backend' IO a
 
@@ -41,32 +44,18 @@ module Main where
     sendJson c m = sendTextData c (encode m)
 
     cards = ["YEFH8","YEFH8","YEFH8","YEFH8","YEFH8","YEFH8","YEFH8","YEFH8"]
-    config = Configuration 10 cards "A test game yo"
 
-    data NameMessage = NameMessage { nameMessageName :: T.Text }
-        deriving (Generic, FromJSON)
+    game = do
+        d <- cardCastsToDeck cards
+        return $
+            Game "0" 10 d d mempty AwaitingSubmissions Nothing mempty
 
-    getName :: Connection -> IO T.Text
-    getName conn = do
-        r <- receiveJson conn
-        case r of
-            Nothing -> putStrLn "ERR: Could not get name" >> getName conn
-            Just nm -> return $ nameMessageName nm
+    counter = newTVarIO (0 :: Int)
 
-    runBackend :: Backend' -> FillBlanksState -> IO ()
-    runBackend b fbs = runReaderT (runGame fbs) b >> return ()
-
-    createGame' :: MVar Backend' -> T.Text -> IO ()
-    createGame' bs t = do
-        backend <- newBackendIO
-        putStrLn "LOG: Created a backend"
-        putMVar bs backend
-        putStrLn "LOG: Put the backend in the MVar successfully"
-        game <- createGame config t
-        putStrLn $ "LOG: Created game " ++ (show game)
-        putStrLn "LOG: Forking game state thread"
-        forkIO $ runBackend backend $ GameState mempty game
-        return ()
+    addAndReturn s = do
+        r <- readTVar s
+        modifyTVar s (+1)
+        return r 
 
 
     gameRead :: Connection -> T.Text -> TChan (SendMessage ServerEvent) -> IO ()
@@ -81,48 +70,47 @@ module Main where
     gameWrite conn id chan = catch l disconnect
         where
             l = forever $ do
-                putStrLn $ "RCV: Attempting to read from the connection"
                 e <- receiveJson conn
                 case e of
                     Just e' -> atomically $ writeTChan chan $ GameEvent id e'
                     Nothing -> putStrLn "Failed to read a message, that's bad"
             disconnect :: SomeException -> IO ()
-            disconnect e = do
-                putStrLn $ "ERR: Got exception " ++ (show e)
-                print $ "LOG: A client named " `T.append` id `T.append` " just disconnected"
+            disconnect e =
                 atomically $ writeTChan chan (PlayerDisconnected id)
                 
-    joinGame mv conn id = do
-        b <- readMVar mv
-        broadcast <- atomically $ dupTChan $ b ^. backendBroadcast
-        send <- atomically $ dupTChan $ b ^. backendRecv
+    joinGame backend conn id = do
+        broadcast <- atomically $ dupTChan $ backend ^. backendBroadcast
+        send <- atomically $ dupTChan $ backend ^. backendRecv
+        atomically $ writeTChan send $ PlayerConnected id 
         forkIO $ gameRead conn id broadcast
-        forkIO $ gameWrite conn id send
-        return ()
+        gameWrite conn id send
 
-    serverApp :: MVar Backend' -> PendingConnection -> IO ()
-    serverApp mv pc = do
+    serverApp :: Backend' -> TVar Int -> PendingConnection -> IO ()
+    serverApp backend counter pc = do
         conn <- acceptRequest pc
         forkPingThread conn 30
-        putStrLn "LOG: Just accepted a request"
-        n <- getName conn
-        putStrLn $ "LOG: Just recieved the name`" ++ (show n) ++ "`"
-        v <- isEmptyMVar mv
-        putStrLn $ "LOG: Is the MVar empty? " ++ (show v)
-        if v then do
-            createGame' mv n
-            joinGame mv conn n
-        else do
-            joinGame mv conn n
-        s <- newEmptyMVar :: IO (MVar ())
-        readMVar s
+        id <- atomically $ addAndReturn counter
+        joinGame backend conn (T.pack $ show $ id)
 
+    runGameBackend' :: Game -> Backend' -> IO ()
+    runGameBackend' game backend = runReaderT (serve game) backend 
+
+    runGameBackend :: Game -> IO Backend'
+    runGameBackend game = do
+        backend <- newBackendIO
+        forkIO $ runGameBackend' game backend
+        return backend
+
+    events = [ StartRound "playerId" (CallCard "Who did it? _." 1 FillIn) 
+             , StartJudgement [JudgementCase mempty 1]
+             , RoundWinner (JudgementCase mempty 1) "playerId"
+             , UpdateScores mempty
+             , GameWinner "playerId"
+             , InvalidSend "That's incorrect"
+             , DealCards [ResponseCard "Alex Jones" FillIn] ]
     main = do
-        s <- newEmptyMVar
-        print "Starting run of server"
-        runServer "0.0.0.0" 9000 $ serverApp s
-
--}
-
-    main = do 
-        putStrLn "Whatever, man!"
+        g <- game 
+        c <- counter
+        s <- runGameBackend g
+        print $ map encode events 
+        runServer "0.0.0.0" 9000 $ serverApp s c

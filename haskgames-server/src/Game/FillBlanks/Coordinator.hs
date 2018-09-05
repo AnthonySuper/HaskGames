@@ -15,24 +15,10 @@ module Game.FillBlanks.Coordinator where
     import Data.Foldable
     import Data.Maybe 
 
-    data Configuration
-        = Configuration
-        { _configWinScore :: Integer
-        , _configCardCasts :: [String]
-        , _configName :: T.Text
-        }
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
-    
-    makeLenses ''Configuration
+
 
     cardCastsToDeck :: [String] -> IO CardDeck
     cardCastsToDeck s = do
         decks <- mapConcurrently getCardDeck s
         let real = catMaybes decks
         return $ fold real
-
-    createGame :: Configuration -> PlayerId -> IO CommonState
-    createGame cfg a = do
-        deck <- cardCastsToDeck $ cfg ^. configCardCasts
-        let (nc, nd) = dealCallCard deck
-        return $ CommonState a (cfg ^. configWinScore) nd mempty AwaitingSubmissions nc

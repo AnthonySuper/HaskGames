@@ -12,31 +12,10 @@ module Game.FillBlanks.ServerState where
     import Game.Common
     import Data.Maybe
 
-    data PlayerState
-        = PlayerState 
-        { _playerStateScore :: Integer
-        }
-        deriving (Show, Read, Eq, Generic)
-    
-    makeLenses ''PlayerState
-
     data GameStatus
         = AwaitingSubmissions
         | AwaitingJudgement
         deriving (Show, Read, Eq, Ord, Enum, Generic)
-
-    data CommonState
-        = CommonState
-        { _commonStateJudge :: PlayerId
-        , _commonStateWinScore :: Integer
-        , _commonStateDeck :: CardDeck
-        , _commonStateCases :: Map.Map JudgementCase PlayerId
-        , _commonStateStatus :: GameStatus
-        , _commonStateCurrentCall :: CallCard
-        }
-        deriving (Show, Read, Eq, Generic)
-
-    makeLenses ''CommonState
 
     data Player
         = Player
@@ -60,7 +39,14 @@ module Game.FillBlanks.ServerState where
 
     makeLenses ''Game
 
-    type FillBlanksState = GameState PlayerState CommonState
+    data GamePublic
+        = GamePublic
+        { _gamePublicDecks :: [T.Text]
+        , _gamePublicScores :: Map.Map PlayerId Integer
+        }
+        deriving (Show, Read, Eq, Generic)
+
+    makeLenses ''GamePublic
 
     winner :: Game -> Maybe PlayerId
     winner gs = fst <$> listToMaybe (Map.toList winners)
@@ -123,4 +109,7 @@ module Game.FillBlanks.ServerState where
             callLens :: Lens' Game [CallCard]
             callLens = gameCurrentDeck . cardDeckCalls
             ns = s & callLens %~ tail
-            nc = s ^. callLens & head 
+            nc = s ^. callLens & head
+
+    playerScores :: Game -> Map.Map PlayerId Integer
+    playerScores g = g ^. gameActivePlayers & (Map.map (^. playerScore))
