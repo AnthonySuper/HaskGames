@@ -34,8 +34,8 @@ module Game.FillBlanks.Game where
     makePrisms ''SelectorState
 
     data JudgeState
-        = WaitingJudgements
-        | PickingWinner
+        = WaitingCases CallCard
+        | PickingWinner CallCard [JudgementCase]
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
     makePrisms ''JudgeState
@@ -69,13 +69,10 @@ module Game.FillBlanks.Game where
     data PublicGame
         = PublicGame
         { _publicGameActivePlayers :: Map.Map PlayerId ImpersonalState
-        , _publicGameCurrentCall :: CallCard
-        , _publicGameStatus :: GameStatus
-        , _publicGameJudgements :: [JudgementCase]
         } deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
     makeLenses ''PublicGame 
-    
+
     data GameInfo
         = GameInfo
         { _gameInfoDecks :: [T.Text]
@@ -96,7 +93,3 @@ module Game.FillBlanks.Game where
             updateStatus (Selector (WaitingJudgement _)) = Selector (WaitingJudgement ())
             updateStatus (Judge s) = Judge s
             updateStatus SittingOut = SittingOut
-
-
-    
-    

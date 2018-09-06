@@ -47,7 +47,7 @@ module Main where
         d <- cardCastsToDeck cards
         let c = d ^? cardDeckCalls . _head
         return $
-            Game 10 d d AwaitingSubmissions c mempty
+            Game 10 d d mempty
 
     counter = newTVarIO (0 :: Int)
 

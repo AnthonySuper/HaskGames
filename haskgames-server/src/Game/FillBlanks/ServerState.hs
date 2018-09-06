@@ -6,7 +6,8 @@
            , NoMonomorphismRestriction
            , NamedFieldPuns #-}
 module Game.FillBlanks.ServerState where
-
+    
+    import Control.Applicative
     import GHC.Generics
     import qualified Data.Text as T
     import Control.Lens
@@ -20,19 +21,25 @@ module Game.FillBlanks.ServerState where
     import Data.Maybe
     import Control.Monad.State.Class
 
-
     data Game
         = Game
         { _gameWinScore :: Int
         , _gameFullDeck :: CardDeck
         , _gameCurrentDeck :: CardDeck
-        , _gameStatus :: GameStatus
-        , _gameCurrentCall :: Maybe CallCard
         , _gameActivePlayers :: Map.Map PlayerId PersonalState
         }
         deriving (Show, Read, Eq, Generic)
 
     makeLenses ''Game
+
+    judgementsMap :: Game -> Map.Map PlayerId JudgementCase
+    judgementsMap g =
+        g   ^. gameActivePlayers
+            & Map.mapMaybe (^? personalStateStatus . _Selector . _WaitingJudgement)
+
+    beingJudged :: Game -> Bool
+    beingJudged g = isJust $ 
+        g ^? gameActivePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
 
     winner :: Game -> Maybe PlayerId
     winner gs = fst <$> listToMaybe (Map.toList winners)
@@ -42,15 +49,14 @@ module Game.FillBlanks.ServerState where
 
     judgementPlayer :: Game -> JudgementCase -> Maybe PlayerId
     judgementPlayer gs c = 
-        gs  & activeJudgements
+        gs  & judgementsMap
             & Map.toList
-            & filter ((== c) . (^. _2))
-            & (^? _head . _1)
+            & (^? traverse . filtered ((== c) . (^. _2)) . _1)
+
 
     increaseScore :: Game -> PlayerId -> Game
     increaseScore gs i =
         gs & gameActivePlayers . at i . _Just . personalStateScore %~ (+1)
-
 
     -- | Increase the score of the player with the given Judgement case
     -- If that player no longer exists, or the judgment case is invalid, returns
@@ -61,8 +67,9 @@ module Game.FillBlanks.ServerState where
     addJudgement c p j = undefined
 
     activeJudgements g =
-        g ^. gameActivePlayers
-            & Map.mapMaybe (^? personalStateStatus . _Selector . _WaitingJudgement)
+        g ^.. gameActivePlayers . 
+            traverse . personalStateStatus . 
+            _Selector . _WaitingJudgement
 
     judgeable :: Game -> Bool
     judgeable s = judgementSize >= (playerSize - 1)
@@ -70,11 +77,11 @@ module Game.FillBlanks.ServerState where
             judgementSize = undefined
             playerSize = Map.size $ s ^. gameActivePlayers
 
-    judgeOf g = 
-        g   ^. gameActivePlayers
-            & Map.filterWithKey (\x _ -> isJudge g x)
-            & Map.toList
-            & (^?! _head . _1)
+    judgeOf :: Game -> Maybe PlayerId
+    judgeOf g =
+          (g ^. gameActivePlayers & Map.keys)
+        & filter (isJudge g)
+        & listToMaybe
             
     isJudge :: Game -> PlayerId -> Bool
     isJudge c p = isJust $
@@ -93,18 +100,18 @@ module Game.FillBlanks.ServerState where
     
     nextTurn :: MonadState Game m => m ()
     nextTurn = do
-        moveJudgeStatus
-        call <- extractCall 
-        gameCurrentCall .= Just call
+        call <- moveJudgeStatus
         players <- use gameActivePlayers
         mapM_ (dealNonJudge (call ^. callArity)) $ Map.keys players
 
-    moveJudgeStatus :: MonadState Game m => m ()
+    moveJudgeStatus :: MonadState Game m => m CallCard
     moveJudgeStatus = do 
-        nj <- judgeAfter <$> get <*> (judgeOf <$> get)
+        call <- extractCall
+        nj <- nextJudge <$> get 
         p <-  use gameActivePlayers
         mapM_ setToSelecting (filter (/= nj) $ Map.keys p)
-        gameActivePlayers . at nj . _Just . personalStateStatus .= (Judge $ WaitingJudgements)
+        gameActivePlayers . at nj . _Just . personalStateStatus .= (Judge $ WaitingCases call)
+        return call 
 
     dealNonJudge :: MonadState Game m => Int -> PlayerId -> m ()
     dealNonJudge count id = do
@@ -116,7 +123,14 @@ module Game.FillBlanks.ServerState where
         cards <- dealCards count 
         gameActivePlayers . at id . _Just . personalStateHand %= (<> cards)
         return ()
-    
+
+    -- TODO: Fix 
+    nextJudge :: Game -> PlayerId 
+    nextJudge g = case currentJudge of
+        Just j -> judgeAfter g j
+        Nothing -> (g ^. gameActivePlayers & Map.keys & head)
+        where
+            currentJudge = judgeOf g
     -- TODO: Skip "Sitting out" players
     judgeAfter :: Game -> PlayerId -> PlayerId
     judgeAfter g i = 
@@ -148,6 +162,17 @@ module Game.FillBlanks.ServerState where
     toPublicGame :: Game -> PublicGame
     toPublicGame g =
         PublicGame (Map.map personalToImpersonal (g ^. gameActivePlayers))
-            (fromJust (g ^. gameCurrentCall))
-            (g ^. gameStatus)
-            (judgementCases g)
+
+    startJudgement g
+        = g & judgeLens .~ PickingWinner call (activeJudgements g)
+        where
+            judgeLens = gameActivePlayers . traverse . personalStateStatus . _Judge
+            -- TODO: Make safer please
+            call = g ^?! judgeLens . _WaitingCases
+
+    gameCurrentCall :: Game -> Maybe CallCard
+    gameCurrentCall g
+        = g ^? judgeLens . _WaitingCases
+            <|> g ^? judgeLens . _PickingWinner . _1 
+        where
+            judgeLens = gameActivePlayers . traverse . personalStateStatus . _Judge 

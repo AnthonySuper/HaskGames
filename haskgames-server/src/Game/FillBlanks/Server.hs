@@ -33,15 +33,16 @@ module Game.FillBlanks.Server where
             go (PlayerConnected pid) = connectPlayer pid s >>= serve
             logId i = logJSON i >> return i
 
-    serveEvent current pid evt = do
-        logJSON (pid, evt)
-        case (current ^. gameStatus) of
-            AwaitingSubmissions -> serveAwaitEvt current pid evt
-            AwaitingJudgement -> serveJudgementEvt current pid evt
+    serveEvent current pid evt
+        =   if beingJudged current then 
+                serveJudgementEvt current pid evt
+            else
+                serveAwaitEvt current pid evt
    
     connectPlayer pid s = do
-        let s' = s & gameActivePlayers . at pid .~ (Just $ PersonalState [] SittingOut 0)
+        let s' = s & gameActivePlayers . at pid .~ (Just $ PersonalState [] (Selector SelectingCards) 0)
         ns <- dealCardsG 6 s' pid
+        logJSON $ ns ^? gameActivePlayers . at pid 
         modifyPublic (gameInfoScores .~ (playerScores ns))
         return ns
 
@@ -60,7 +61,7 @@ module Game.FillBlanks.Server where
         return ng'
     
     dealCardsG i g pid = do
-        let (nc, ng) = runState (dealCards i) g
+        let (nc, ng) = runState (dealCardsTo i pid) g
         sendUpdates ng
 
     serveAwaitEvt c p = go
@@ -76,7 +77,7 @@ module Game.FillBlanks.Server where
         | otherwise = do
             let updated = addJudgement s p j
             if judgeable updated then do
-                let updated' = updated & gameStatus .~ AwaitingJudgement
+                let updated' = startJudgement updated
                 sendUpdates updated'
             else sendUpdates updated 
              
