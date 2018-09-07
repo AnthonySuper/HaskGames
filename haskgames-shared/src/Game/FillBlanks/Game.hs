@@ -81,6 +81,20 @@ module Game.FillBlanks.Game where
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
     makeLenses ''GameInfo
+
+    isJudge :: PersonalState -> Bool
+    isJudge p = isJust $
+        p ^? personalStateStatus . _Judge
+
+    isSittingOut :: PersonalState -> Bool
+    isSittingOut p = isJust $
+        p ^? personalStateStatus . _SittingOut
+
+    isWaitingJudgement :: PersonalState -> Bool
+    isWaitingJudgement p = isJust $
+        p ^? personalStateStatus . _Selector . _WaitingJudgement
+
+    canBeJudged a = isSittingOut a || isWaitingJudgement a || isJudge a
     
     personalToImpersonal :: PersonalState -> ImpersonalState
     personalToImpersonal p 

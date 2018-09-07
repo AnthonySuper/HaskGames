@@ -66,28 +66,28 @@ module Game.FillBlanks.ServerState where
     addJudgement :: Game -> PlayerId -> JudgementCase -> Game
     addJudgement c p j = undefined
 
+
+    activeJudgementsL
+        = gameActivePlayers . traverse . personalStateStatus .
+          _Selector . _WaitingJudgement 
+
     activeJudgements g =
-        g ^.. gameActivePlayers . 
-            traverse . personalStateStatus . 
-            _Selector . _WaitingJudgement
+        g ^.. activeJudgementsL
 
     judgeable :: Game -> Bool
-    judgeable s = judgementSize >= (playerSize - 1)
+    judgeable g = all canBeJudged cases 
         where
-            judgementSize = undefined
-            playerSize = Map.size $ s ^. gameActivePlayers
+            cases = g ^.. gameActivePlayers . traverse 
 
     judgeOf :: Game -> Maybe PlayerId
     judgeOf g =
           (g ^. gameActivePlayers & Map.keys)
-        & filter (isJudge g)
+        & filter (judgedBy g)
         & listToMaybe
             
-    isJudge :: Game -> PlayerId -> Bool
-    isJudge c p = isJust $
+    judgedBy :: Game -> PlayerId -> Bool
+    judgedBy c p = isJust $
             c ^? gameActivePlayers . at p . _Just . personalStateStatus . _Judge
-
-    judgedBy = isJudge
 
     hasSubmissionFrom :: Game -> PlayerId -> Bool
     hasSubmissionFrom s p = isJust $
