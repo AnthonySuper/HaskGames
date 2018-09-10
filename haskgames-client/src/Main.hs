@@ -11,6 +11,7 @@
     import Control.Lens 
     import Data.ByteString
     import Control.Monad.Fix
+    import qualified Data.Set as Set 
 
     main = mainWidget $ el "div" $ mdo
         ws <- webSocket "ws://localhost:9000" $ def &
@@ -31,17 +32,34 @@
     gamePlayInner :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
                   => RawWebSocket t ByteString -> Maybe (PublicGame, PersonalState) -> m ()
     gamePlayInner _ Nothing = return ()
-    gamePlayInner ws (Just (pg, ps)) = do
-        el "h1" $ text "Gameplay wow"
+    gamePlayInner ws (Just (pg, ps)) = elClass "div" "gameplay-container" $ mdo
         el "div" $ maybe (errorMessage "No call card oh boy") text (judgeCard pg <&> (^. callBody))
-        el "ul" $ mapM showCard (ps ^. personalStateHand)
+        cardSet <- foldDyn toggleElement mempty (leftmost toggleEvents)
+        toggleEvents <- el "ul" $ mapM (showCard cardSet) (ps ^. personalStateHand)
         return ()
 
+    boolClass t f d = func <$> d
+        where
+            func v = if v then t else f
 
-    showCard card = el "li" $ do
-        text (card ^. responseBody)
-        el "br" $ return ()
-        button "Select"
+    toggleElement e s
+        | e `Set.member` s = Set.delete e s
+        | otherwise = Set.insert e s
+    
+    showCard :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
+             => Dynamic t (Set.Set ResponseCard) -> ResponseCard -> m (Event t ResponseCard)
+    showCard cardSet card = elDynClass "li" klass go 
+        where
+            klass = boolClass "card-selected" "card-unselected" c
+            c = containsElement cardSet card
+            go = do
+                text (card ^. responseBody)
+                el "br" $ return ()
+                b <- button "Select"
+                return $ (const card) <$> b
+        
+    containsElement dynSet elm = Set.member elm <$> dynSet
+
 
     gameListWidget ws = el "div" $ do
         ds <- gameList $ traceEvent "WS RECV:" (ws & _webSocket_recv)
