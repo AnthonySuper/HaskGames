@@ -26,6 +26,7 @@ dependencies:
 - reflex
 - reflex-dom
 - containers
+- file-embed
 
 executable:
   main: Main.hs

@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c37aa55761e5faf70fd0eb8081b8ad9858c18a35666cf8e5fdc455ab3be0e556
+-- hash: 3cef24bccf5624eb168070bbce56fb557c00ac04553bc6fce00a21654e2300fc
 
 name:           haskgames-client
 version:        0.1.0.0
@@ -33,6 +33,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , file-embed
     , haskgames-shared
     , lens
     , reflex
@@ -52,6 +53,7 @@ executable haskgames-client
     , base >=4.7 && <5
     , bytestring
     , containers
+    , file-embed
     , haskgames-shared
     , hpack
     , lens
@@ -73,6 +75,7 @@ test-suite HaskGames-client-test
     , base >=4.7 && <5
     , bytestring
     , containers
+    , file-embed
     , haskgames-shared
     , hspec
     , lens

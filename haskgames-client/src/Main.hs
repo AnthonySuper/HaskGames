@@ -1,7 +1,8 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RecursiveDo, FlexibleContexts, NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RecursiveDo, FlexibleContexts, NoMonomorphismRestriction, TemplateHaskell #-}
     module Main where
     import Reflex.Dom
     import Data.Monoid
+    import Data.FileEmbed
     import Game.FillBlanks.Game
     import Game.FillBlanks.Event
     import Game.FillBlanks.Deck
@@ -13,7 +14,7 @@
     import Control.Monad.Fix
     import qualified Data.Set as Set 
 
-    main = mainWidget $ el "div" $ mdo
+    main = mainWidgetWithCss $(embedFile "static/main.css") $ el "div" $ mdo
         ws <- webSocket "ws://localhost:9000" $ def &
             webSocketConfig_send .~ leftmost [listEvt]
         listEvt <- gameListWidget ws
@@ -35,7 +36,7 @@
     gamePlayInner ws (Just (pg, ps)) = elClass "div" "gameplay-container" $ mdo
         el "div" $ maybe (errorMessage "No call card oh boy") text (judgeCard pg <&> (^. callBody))
         cardSet <- foldDyn toggleElement mempty (leftmost toggleEvents)
-        toggleEvents <- el "ul" $ mapM (showCard cardSet) (ps ^. personalStateHand)
+        toggleEvents <- elClass "ul" "cards-list" $ mapM (showCard cardSet) (ps ^. personalStateHand)
         return ()
 
     boolClass t f d = func <$> d
@@ -46,20 +47,23 @@
         | e `Set.member` s = Set.delete e s
         | otherwise = Set.insert e s
     
-    showCard :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
+    -- TODO: Fix this so it doesn't use a set because ROFL ORDER MATTERS PLEASE KILL ME
+    showCard :: forall t m. (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
              => Dynamic t (Set.Set ResponseCard) -> ResponseCard -> m (Event t ResponseCard)
-    showCard cardSet card = elDynClass "li" klass go 
+    showCard cardSet card = do 
+        (el, _) <- elDynClass' "li" klass go
+        
+        let clickEvent = domEvent Click el :: Event t ()
+        return $ (const card) <$> clickEvent
         where
-            klass = boolClass "card-selected" "card-unselected" c
+            klass = boolClass "card card-selected" "card card-unselected" c
             c = containsElement cardSet card
             go = do
-                text (card ^. responseBody)
-                el "br" $ return ()
-                b <- button "Select"
-                return $ (const card) <$> b
+                elClass "h3" "card-title" $ text (card ^. responseBody) 
+                
+                
         
     containsElement dynSet elm = Set.member elm <$> dynSet
-
 
     gameListWidget ws = el "div" $ do
         ds <- gameList $ traceEvent "WS RECV:" (ws & _webSocket_recv)
@@ -74,13 +78,14 @@
         
     showGame :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
              => Dynamic t GameInfo -> m (Event t Int)
-    showGame g = el "li" $ do
+    showGame g = el "div" $ do
         el "h1" $ display $ g <&> (^. gameInfoId)
         btn <- el "div" $ do
             el "h2" $ text "Using Decks:"
             el "ul" $
                 simpleList (g <&> (^. gameInfoDecks)) display
-            button "Join Game"
+            btn <- button "Join Game"
+            return btn 
         return $ tagPromptlyDyn (g <&> (^. gameInfoId)) btn
 
     gameStateDyn :: forall t m. (Reflex t, MonadHold t m, MonadFix m)
