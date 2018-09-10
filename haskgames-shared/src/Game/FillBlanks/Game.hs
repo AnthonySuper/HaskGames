@@ -94,6 +94,12 @@ module Game.FillBlanks.Game where
         | JoinedGame
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
+    judgeCard :: PublicGame -> Maybe CallCard
+    judgeCard g = listToMaybe $
+        (g ^.. publicGameActivePlayers . traverse . impersonalStateStatus . _Judge . _WaitingCases)
+        `mappend`
+        (g ^.. publicGameActivePlayers . traverse . impersonalStateStatus . _Judge . _PickingWinner . _1)
+
     isJudge :: PersonalState -> Bool
     isJudge p = isJust $
         p ^? personalStateStatus . _Judge

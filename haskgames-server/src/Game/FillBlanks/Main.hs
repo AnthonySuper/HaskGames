@@ -87,7 +87,7 @@ module Game.FillBlanks.Main where
             case backend of
                 Nothing -> newPlayer c id
                 Just backend' -> do
-                    sendJson c JoinedGame 
+                    sendJson c $ JoinedGame 
                     joinGame backend' c id
         
     backendCounter :: TVar Integer

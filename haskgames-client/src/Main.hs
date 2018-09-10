@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RecursiveDo #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RecursiveDo, FlexibleContexts, NoMonomorphismRestriction #-}
     module Main where
     import Reflex.Dom
     import Data.Monoid
@@ -16,21 +16,32 @@
         ws <- webSocket "ws://localhost:9000" $ def &
             webSocketConfig_send .~ leftmost [listEvt]
         listEvt <- gameListWidget ws
+        return ()
         gamePlayWidget ws 
         return ()
 
+    errorMessage = elClass "div" "error" . text
+
+    gamePlayWidget :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
+                     => RawWebSocket t ByteString -> m (Dynamic t ())
     gamePlayWidget ws = do
         gameDyn <- gameStateDyn (ws & _webSocket_recv)
-        dyn $ gamePlayInner ws <$> gameDyn
-
+        widgetHold (blank) (updated gameDyn <&> gamePlayInner ws)
+        
+    gamePlayInner :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
+                  => RawWebSocket t ByteString -> Maybe (PublicGame, PersonalState) -> m ()
     gamePlayInner _ Nothing = return ()
     gamePlayInner ws (Just (pg, ps)) = do
         el "h1" $ text "Gameplay wow"
-        el "ul" $ mapM_ showCard (ps ^. personalStateHand)
+        el "div" $ maybe (errorMessage "No call card oh boy") text (judgeCard pg <&> (^. callBody))
+        el "ul" $ mapM showCard (ps ^. personalStateHand)
         return ()
 
 
-    showCard card = el "li" $ text (card ^. responseBody)
+    showCard card = el "li" $ do
+        text (card ^. responseBody)
+        el "br" $ return ()
+        button "Select"
 
     gameListWidget ws = el "div" $ do
         ds <- gameList $ traceEvent "WS RECV:" (ws & _webSocket_recv)
@@ -46,7 +57,7 @@
     showGame :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
              => Dynamic t GameInfo -> m (Event t Int)
     showGame g = el "li" $ do
-        el "h1" $ display (g <&> (^. gameInfoId))
+        el "h1" $ display $ g <&> (^. gameInfoId)
         btn <- el "div" $ do
             el "h2" $ text "Using Decks:"
             el "ul" $
