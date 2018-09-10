@@ -14,9 +14,9 @@ module Game.FillBlanks.Event where
     data ServerEvent
         = UpdateState PublicGame PersonalState 
         | InvalidSend T.Text
-        deriving (Show, Read, Eq, Generic, ToJSON)
+        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
     data ClientEvent
         = SubmitJudgement JudgementCase
         | SelectWinner JudgementCase
-        deriving (Show, Read, Eq, Generic, FromJSON, ToJSON)
+        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)

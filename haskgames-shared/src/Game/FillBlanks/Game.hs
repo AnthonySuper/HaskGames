@@ -83,6 +83,17 @@ module Game.FillBlanks.Game where
 
     makeLenses ''GameInfo
 
+    data CoordinationMessage
+        = JoinGame Int
+        | CreateGame [String]
+        | ListGames
+        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+
+    data CoordinationResponse
+        = ReadInfo [GameInfo]
+        | JoinedGame
+        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+
     isJudge :: PersonalState -> Bool
     isJudge p = isJust $
         p ^? personalStateStatus . _Judge

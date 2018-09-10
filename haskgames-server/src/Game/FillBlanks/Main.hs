@@ -34,17 +34,6 @@ module Game.FillBlanks.Main where
     sendJson :: (ToJSON a) => Connection -> a -> IO ()
     sendJson c m = sendTextData c (encode m)
 
-    data CoordinationMessage
-        = JoinGame Int
-        | CreateGame [String]
-        | ListGames
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
-
-    data CoordinationResponse
-        = ReadInfo [GameInfo]
-        | JoinedGame GameInfo
-        deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
-
     runGameBackend :: Game -> Backend' -> IO ()
     runGameBackend game backend = runReaderT (serve game) backend
 
@@ -87,14 +76,19 @@ module Game.FillBlanks.Main where
             forkIO $ runGameBackend g b
             joinGame b c id
         ListGames -> do
+            print "Listing games..."
             infos <- getInfo
-            sendJson c infos
+            let toSend = ReadInfo infos
+            print toSend
+            sendJson c toSend
             newPlayer c id
         JoinGame i -> do
             backend <- getBackend i
             case backend of
                 Nothing -> newPlayer c id
-                Just backend' -> joinGame backend' c id
+                Just backend' -> do
+                    sendJson c JoinedGame 
+                    joinGame backend' c id
         
     backendCounter :: TVar Integer
     backendCounter = unsafePerformIO $ newTVarIO 0
