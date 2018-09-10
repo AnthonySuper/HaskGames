@@ -72,6 +72,7 @@ module Game.FillBlanks.Coordinator where
             let ns = GameInfo (map T.pack decks) mempty (coordinator ^. coordinationCounter) 
             writeTVar (backend ^. backendState) $ Just ns
             modifyTVar cardCoordinator (coordinationCounter %~ (+1))
+            modifyTVar cardCoordinator (coordinationGames %~ (backend :))
             return backend
         let game = Game 10 cards cards mempty
         forkIO $ runGameBackend game backend

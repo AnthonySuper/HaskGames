@@ -49,7 +49,7 @@ module Game.FillBlanks.Server where
     sendError p msg s = (sendPlayer p $ InvalidSend msg) >> return s
 
     serveJudgementEvt c p e
-        | (isJudge c p) = case e of
+        | c `judgedBy` p = case e of
             SelectWinner w -> case increaseScoreJudgement c w of
                 Just c' -> startRound c'
                 Nothing -> sendError p "Judgement did not exist" c
