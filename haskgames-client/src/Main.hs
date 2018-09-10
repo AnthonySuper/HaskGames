@@ -60,8 +60,6 @@
             c = containsElement cardSet card
             go = do
                 elClass "h3" "card-title" $ text (card ^. responseBody) 
-                
-                
         
     containsElement dynSet elm = Set.member elm <$> dynSet
 
