@@ -77,6 +77,7 @@ module Game.FillBlanks.Game where
         = GameInfo
         { _gameInfoDecks :: [T.Text]
         , _gameInfoScores :: Map.Map PlayerId Int
+        , _gameInfoId :: Int
         }
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 

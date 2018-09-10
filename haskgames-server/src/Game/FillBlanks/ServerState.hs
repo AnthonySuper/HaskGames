@@ -20,6 +20,7 @@ module Game.FillBlanks.ServerState where
     import Game.Common
     import Data.Maybe
     import Control.Monad.State.Class
+    import Control.Monad.Except
 
     data Game
         = Game

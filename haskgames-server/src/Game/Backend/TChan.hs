@@ -42,13 +42,13 @@ module Game.Backend.TChan where
         , _backendState :: TVar (Maybe t)
         }
 
+    makeLenses ''Backend
+
     newBackend :: STM (Backend s r t)
     newBackend = Backend <$> newBroadcastTChan <*> newTChan <*> (newTVar Nothing)
 
     newBackendIO :: IO (Backend s r t)
     newBackendIO = Backend <$> newBroadcastTChanIO <*> newTChanIO <*> (newTVarIO Nothing)
-
-    makeLenses ''Backend
 
     instance (MonadIO m, Monad m) => (MonadLog m) where
         logJSON m = liftIO $ BSE.putStrLn (encode m) 
