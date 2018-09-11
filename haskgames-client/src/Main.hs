@@ -12,7 +12,6 @@
     import Control.Lens 
     import Data.ByteString
     import Control.Monad.Fix
-    import qualified Data.Set as Set 
 
     main = mainWidgetWithCss $(embedFile "static/main.css") $ el "div" $ mdo
         ws <- webSocket "ws://localhost:9000" $ def &
@@ -33,7 +32,11 @@
                   => RawWebSocket t ByteString -> Maybe (PublicGame, PersonalState) -> m ()
     gamePlayInner _ Nothing = return ()
     gamePlayInner ws (Just (pg, ps)) = elClass "div" "gameplay-container" $ mdo
-        el "div" $ maybe (errorMessage "No call card oh boy") text (judgeCard pg <&> (^. callBody))
+        el "div" $ 
+            maybe 
+                (errorMessage "No call card oh boy") 
+                text 
+                (judgeCard pg <&> (^. callBody))
         cardSet <- foldDyn toggleElement mempty (leftmost toggleEvents)
         toggleEvents <- elClass "ul" "cards-list" $ mapM (showCard cardSet) (ps ^. personalStateHand)
         return ()
@@ -48,7 +51,7 @@
     
     -- TODO: Fix this so it doesn't use a set because ROFL ORDER MATTERS PLEASE KILL ME
     showCard :: forall t m. (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
-             => Dynamic t (Set.Set ResponseCard) -> ResponseCard -> m (Event t ResponseCard)
+             => Dynamic t [ResponseCard] -> ResponseCard -> m (Event t ResponseCard)
     showCard cardSet card = do 
         (el, _) <- elDynClass' "li" klass go
         
@@ -60,7 +63,7 @@
             go = do
                 elClass "h3" "card-title" $ text (card ^. responseBody) 
         
-    containsElement dynSet elm = Set.member elm <$> dynSet
+    containsElement dynSet elm = elem elm <$> dynSet
 
     gameListWidget ws = el "div" $ do
         ds <- gameList $ traceEvent "WS RECV:" (ws & _webSocket_recv)

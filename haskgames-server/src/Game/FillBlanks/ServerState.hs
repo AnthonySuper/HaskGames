@@ -54,7 +54,6 @@ module Game.FillBlanks.ServerState where
             & Map.toList
             & (^? traverse . filtered ((== c) . (^. _2)) . _1)
 
-
     increaseScore :: Game -> PlayerId -> Game
     increaseScore gs i =
         gs & gameActivePlayers . at i . _Just . personalStateScore %~ (+1)
@@ -118,7 +117,7 @@ module Game.FillBlanks.ServerState where
     nextTurn = do
         call <- moveJudgeStatus
         players <- use gameActivePlayers
-        mapM_ (dealNonJudge (call ^. callArity)) $ Map.keys players
+        mapM_ (dealNonJudge (call & callArity)) $ Map.keys players
 
     moveJudgeStatus :: MonadState Game m => m CallCard
     moveJudgeStatus = do 

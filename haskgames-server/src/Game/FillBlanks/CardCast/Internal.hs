@@ -53,11 +53,7 @@ module Game.FillBlanks.CardCast.Internal where
 
     callToGame :: Call -> CallCard
     callToGame (Call body id)
-        = CallCard body' arity $ CardCastDeck id
-        where
-            body' = T.intercalate "_" body
-            arity = subtract 1 $ length body
-
+        = CallCard body $ CardCastDeck id
 
     responseToGame :: Response -> ResponseCard
     responseToGame (Response body id)

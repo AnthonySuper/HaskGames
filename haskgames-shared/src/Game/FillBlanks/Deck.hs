@@ -20,8 +20,7 @@ module Game.FillBlanks.Deck where
     makeLenses ''ResponseCard
     
     data CallCard
-        = CallCard { _callBody :: T.Text
-                   , _callArity :: Int
+        = CallCard { _callBody :: [T.Text]
                    , _callSource :: CardSource
                    }
         deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
@@ -53,3 +52,6 @@ module Game.FillBlanks.Deck where
         where
             nd = d & cardDeckCalls %~ tail
             nc = d ^. cardDeckCalls & head
+
+    callArity :: CallCard -> Int
+    callArity c = length (c ^. callBody)
