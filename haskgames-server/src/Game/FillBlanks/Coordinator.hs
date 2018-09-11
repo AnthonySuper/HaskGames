@@ -53,7 +53,6 @@ module Game.FillBlanks.Coordinator where
             modifyTVar cardCoordinator (coordinationGames %~ (backend :))
             return backend
         let game = Game 10 cards cards mempty
-        print $ ("Created Game", game)
         return (game, backend)
 
     getInfo :: IO [GameInfo]

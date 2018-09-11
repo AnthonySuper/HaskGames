@@ -18,7 +18,6 @@
         ws <- webSocket "ws://localhost:9000" $ def &
             webSocketConfig_send .~ leftmost [listEvt]
         listEvt <- gameListWidget ws
-        return ()
         gamePlayWidget ws 
         return ()
 

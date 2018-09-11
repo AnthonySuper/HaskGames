@@ -26,12 +26,11 @@ module Game.FillBlanks.Server where
 
     serve :: MonadGame ServerEvent ClientEvent GameInfo m
           => Game -> m ()
-    serve s = recvEvent >>= logId >>= go
+    serve s = recvEvent >>= go
         where
             go (GameEvent pid evt) =
                 serveEvent s pid evt >>= serve
             go (PlayerConnected pid) = connectPlayer pid s >>= serve
-            logId i = logJSON i >> return i
 
     serveEvent current pid evt
         =   if beingJudged current then 
@@ -40,11 +39,9 @@ module Game.FillBlanks.Server where
                 serveAwaitEvt current pid evt
    
     connectPlayer pid s = do
-        let s' = s & gameActivePlayers . at pid .~ (Just $ PersonalState [] (Selector SelectingCards) 0)
-        ns <- dealCardsG 6 s' pid
-        logJSON $ ns ^? gameActivePlayers . at pid 
+        let (_, ns) = runState (addPlayer pid) s 
         modifyPublic (gameInfoScores .~ (playerScores ns))
-        return ns
+        sendUpdates ns
 
     sendError p msg s = (sendPlayer p $ InvalidSend msg) >> return s
 
@@ -60,9 +57,7 @@ module Game.FillBlanks.Server where
         let (nc, ng') = runState (nextTurn) g
         return ng'
     
-    dealCardsG i g pid = do
-        let (nc, ng) = runState (dealCardsTo i pid) g
-        sendUpdates ng
+    dealCardsU i g pid = let (nc, ng) = runState (dealCardsTo i pid) g in ng
 
     serveAwaitEvt c p = go
         where

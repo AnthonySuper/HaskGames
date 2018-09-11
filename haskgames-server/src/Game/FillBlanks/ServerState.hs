@@ -67,6 +67,21 @@ module Game.FillBlanks.ServerState where
     addJudgement :: Game -> PlayerId -> JudgementCase -> Game
     addJudgement c p j = undefined
 
+    addPlayer :: (MonadState Game m)
+              => PlayerId -> m ()
+    addPlayer pid = do
+        s <- get
+        case judgeOf s of
+            Nothing -> do
+                call <- extractCall
+                let p = PersonalState [] (Judge $ WaitingCases call) 0
+                gameActivePlayers . at pid .= Just p
+                return ()
+            Just _ -> do
+                let p = PersonalState [] (Selector SelectingCards) 0
+                gameActivePlayers . at pid .= Just p
+                dealCardsTo 6 pid
+                return ()
 
     activeJudgementsL
         = gameActivePlayers . traverse . personalStateStatus .

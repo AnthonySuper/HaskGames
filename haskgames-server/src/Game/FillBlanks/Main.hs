@@ -79,7 +79,6 @@ module Game.FillBlanks.Main where
             print "Listing games..."
             infos <- getInfo
             let toSend = ReadInfo infos
-            print toSend
             sendJson c toSend
             newPlayer c id
         JoinGame i -> do
