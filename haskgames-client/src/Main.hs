@@ -10,14 +10,16 @@
     import qualified Data.Text as T
     import Data.Text.Encoding as E
     import Control.Lens 
-    import Data.ByteString
+    import Data.ByteString hiding (elem, concat)
     import Control.Monad.Fix
+    import Data.List (delete)
+    import qualified Data.Map as Map
 
     main = mainWidgetWithCss $(embedFile "static/main.css") $ el "div" $ mdo
         ws <- webSocket "ws://localhost:9000" $ def &
             webSocketConfig_send .~ leftmost [listEvt]
         listEvt <- gameListWidget ws
-        gamePlayWidget ws 
+        gamePlayWidget ws
         return ()
 
     errorMessage = elClass "div" "error" . text
@@ -32,11 +34,9 @@
                   => RawWebSocket t ByteString -> Maybe (PublicGame, PersonalState) -> m ()
     gamePlayInner _ Nothing = return ()
     gamePlayInner ws (Just (pg, ps)) = elClass "div" "gameplay-container" $ mdo
-        el "div" $ 
-            maybe 
-                (errorMessage "No call card oh boy") 
-                text 
-                (judgeCard pg <&> (^. callBody))
+        el "div" $ text "Type me later lol"
+        let keys = Map.keys (pg ^. publicGameActivePlayers)
+        el "div" $ text $ T.intercalate ", " keys
         cardSet <- foldDyn toggleElement mempty (leftmost toggleEvents)
         toggleEvents <- elClass "ul" "cards-list" $ mapM (showCard cardSet) (ps ^. personalStateHand)
         return ()
@@ -46,8 +46,8 @@
             func v = if v then t else f
 
     toggleElement e s
-        | e `Set.member` s = Set.delete e s
-        | otherwise = Set.insert e s
+        | e `elem` s = delete e s
+        | otherwise = e : s
     
     -- TODO: Fix this so it doesn't use a set because ROFL ORDER MATTERS PLEASE KILL ME
     showCard :: forall t m. (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)

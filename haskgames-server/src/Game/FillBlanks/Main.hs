@@ -38,16 +38,29 @@ module Game.FillBlanks.Main where
     runGameBackend game backend = runReaderT (serve game) backend
 
     gameRead :: Connection -> T.Text -> TChan (SendMessage ServerEvent) -> IO ()
-    gameRead c id chan = forever $ do
-        putStrLn $ "BDC: Reading broadcast messages for user " ++ (show id)
-        res <- atomically $ readTChan chan 
-        case res of
-            BroadcastMessage m -> sendJson c m
-            DirectedMessage i m -> when (id == i) $ sendJson c m
+    gameRead c id chan = msg >> catch l handle 
+        where
+            handle :: SomeException -> IO ()
+            handle = const $ return ()
+            l = forever $ do
+                res <- atomically $ readTChan chan
+                case res of
+                    BroadcastMessage m -> sendJson c m
+                    DirectedMessage i m -> when (id == i) $ sendJson c m
+            msg = do 
+                tid <- myThreadId
+                print $ concat $ [
+                        "Using thread ", show tid, " to route for ", show id
+                    ]
 
     gameWrite :: Connection -> T.Text -> TChan (RecvMessage ClientEvent) -> IO ()
-    gameWrite conn id chan = catch l disconnect
+    gameWrite conn id chan = catch (msg >> l) disconnect
         where
+            msg = do
+                tid <- myThreadId
+                print $ concat $ [
+                        "Using thread ", show tid, " to route writes for ", show id
+                    ]
             l = forever $ do
                 e <- receiveJson conn
                 case e of
@@ -67,11 +80,14 @@ module Game.FillBlanks.Main where
     newPlayer :: Connection -> T.Text -> IO ()
     newPlayer c id = receiveJson c >>= \case
         Just x -> coordinate c id x
-        Nothing -> newPlayer c id
+        Nothing -> do
+            print ("Player ", id, " sent an invalid msg")
+            newPlayer c id
 
     coordinate :: Connection -> T.Text -> CoordinationMessage -> IO ()
     coordinate c id f = case f of
         CreateGame decks -> do
+            print "Creating a game..."
             (g, b) <- createGame decks
             forkIO $ runGameBackend g b
             joinGame b c id
@@ -82,6 +98,7 @@ module Game.FillBlanks.Main where
             sendJson c toSend
             newPlayer c id
         JoinGame i -> do
+            print "Joining a game..."
             backend <- getBackend i
             case backend of
                 Nothing -> newPlayer c id
@@ -102,4 +119,5 @@ module Game.FillBlanks.Main where
         conn <- acceptRequest pc 
         forkPingThread conn 30
         id <- atomically $ addAndReturn backendCounter
+        print "Found a new player, asking for commands..."
         newPlayer conn (T.pack $ show id)

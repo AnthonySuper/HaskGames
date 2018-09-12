@@ -31,6 +31,7 @@ module Game.FillBlanks.Server where
             go (GameEvent pid evt) =
                 serveEvent s pid evt >>= serve
             go (PlayerConnected pid) = connectPlayer pid s >>= serve
+            go (PlayerDisconnected pid) = disconnectPlayer pid s >>= serve
 
     serveEvent current pid evt
         =   if beingJudged current then 
@@ -41,6 +42,10 @@ module Game.FillBlanks.Server where
     connectPlayer pid s = do
         let (_, ns) = runState (addPlayer pid) s 
         modifyPublic (gameInfoScores .~ (playerScores ns))
+        sendUpdates ns
+
+    disconnectPlayer pid s = do
+        let (_, ns) = runState (sitOutPlayer pid) s
         sendUpdates ns
 
     sendError p msg s = (sendPlayer p $ InvalidSend msg) >> return s

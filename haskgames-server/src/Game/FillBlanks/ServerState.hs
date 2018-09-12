@@ -82,6 +82,18 @@ module Game.FillBlanks.ServerState where
                 dealCardsTo 6 pid
                 return ()
 
+    sitOutPlayer :: (MonadState Game m)
+                 => PlayerId -> m ()
+    sitOutPlayer pid = do
+        s <- get
+        if s `judgedBy` pid then do
+            moveJudgeStatus >> return ()
+        else return ()
+        gameActivePlayers . at pid . _Just . personalStateStatus .= SittingOut
+        return () 
+
+        
+        
     activeJudgementsL
         = gameActivePlayers . traverse . personalStateStatus .
           _Selector . _WaitingJudgement 
