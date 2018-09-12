@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3cef24bccf5624eb168070bbce56fb557c00ac04553bc6fce00a21654e2300fc
+-- hash: 9eca6aafbf266578efea5844ab4fb01b297747237db4020d17b59ff5dd0bac16
 
 name:           haskgames-client
 version:        0.1.0.0
@@ -23,6 +23,8 @@ source-repository head
 
 library
   exposed-modules:
+      GameView.FillBlanks.GamePicker
+      GameView.FillBlanks.Main
       Main
   other-modules:
       Paths_haskgames_client
@@ -44,6 +46,8 @@ library
 executable haskgames-client
   main-is: Main.hs
   other-modules:
+      GameView.FillBlanks.GamePicker
+      GameView.FillBlanks.Main
       Paths_haskgames_client
   hs-source-dirs:
       src

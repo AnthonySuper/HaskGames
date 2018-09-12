@@ -94,6 +94,8 @@ module Game.FillBlanks.Game where
         | JoinedGame
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
+    makePrisms ''CoordinationResponse
+
     judgeCard :: PublicGame -> Maybe CallCard
     judgeCard g = listToMaybe $
         (g ^.. publicGameActivePlayers . traverse . impersonalStateStatus . _Judge . _WaitingCases)
