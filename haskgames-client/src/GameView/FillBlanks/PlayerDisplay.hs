@@ -23,7 +23,6 @@ module GameView.FillBlanks.PlayerDisplay where
             listWithKey (view publicGameActivePlayers <$> s) displayPlayer
         return ()
 
-
     displayPlayer :: (MonadWidget t m)
                   => PlayerId
                   -> Dynamic t ImpersonalState
