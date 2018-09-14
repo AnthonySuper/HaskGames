@@ -26,6 +26,8 @@ module GameView.FillBlanks.GamePlay where
     import Control.Monad (when)
     import Data.Maybe (maybe)
     import Data.List (delete)
+    import GameView.FillBlanks.HandSelector
+    import GameView.FillBlanks.PlayerDisplay
 
 
     gamePlayWidget :: forall t m . (MonadWidget t m)
@@ -49,31 +51,11 @@ module GameView.FillBlanks.GamePlay where
     gamePlayInner state = do
         playerState <- holdUniqDyn $ view _2 <$> state
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
-        elClass "ul" "players-list" $ 
-            listWithKey (view (_1 . publicGameActivePlayers) <$> state) displayPlayer
+        playersList (view _1 <$> state)
         elClass "div" "gameplay-area" $ do
             dyn $ displayHand <$> callCard <*> playerState
         return ()
 
-    displayPlayer :: (MonadWidget t m)
-                  => PlayerId
-                  -> Dynamic t ImpersonalState
-                  -> m ()
-    displayPlayer name val = elClass "li" "players-list-item" $ do
-        el "h3" $ text name
-        elClass "div" "players-list-score" $ do
-            text "Score: "
-            display $ view impersonalStateScore <$> val
-        elClass "div" "players-list-status" $
-            dynText $ showStatus <$> view impersonalStateStatus <$> val  
-        return ()
-        where
-            showStatus (Selector SelectingCards) = "Selecting Cards"
-            showStatus (Selector (WaitingJudgement ())) = "Submitted"
-            showStatus SittingOut = "Sitting Out"
-            showStatus (Judge (WaitingCases _)) = "Waiting Submissions"
-            showStatus (Judge (PickingWinner _ _)) = "Picking Winner"
-        
     gameStateDyn :: forall t m. (Reflex t, MonadHold t m, MonadFix m)
                  => Event t ByteString
                  -> m (Dynamic t (Maybe (PublicGame, PersonalState)))
@@ -89,30 +71,24 @@ module GameView.FillBlanks.GamePlay where
                 -> PersonalState
                 -> m ()
     displayHand call s = elClass "div" "hand-display" $ mdo
-        handDyn <- foldDyn ($) [] $ leftmost [removeCards, q]
-        -- Eventually make this be an event that returns a card lmao
-        addCards <- elClass "ul" "hand-cards-list" $
-            mapM displayResponseCard (s ^. personalStateHand)
-        let q = foldl mappend never addCards 
-        resp <- dyn $ responseInContext callBody' <$> handDyn
-        removeCards <- switchHold (never $> id) resp
+        handDyn <- foldDyn ($) [] $ leftmost [removeCards, addCards]
+        responseDyn <- dyn $ responseInContext callBody' <$> handDyn
+        removeCards <- switchHold never responseDyn
+        addCardsDyn <- dyn $ 
+            responseCardSection callArity <$> handDyn <*> pure (s ^. personalStateHand)
+        addCards <- switchHold never $ addCardsDyn
+        let q = addCards
         return ()
         where
+            callArity = length callBody'
             callBody' :: [T.Text]
             callBody' = maybe [] (^. callBody) call
-
-    displayResponseCard :: (MonadWidget t m)
-                        => ResponseCard
-                        -> m (Event t ([ResponseCard] -> [ResponseCard]))
-    displayResponseCard c = elClass "li" "response-card" $ do
-        (e, _) <- el' "h3" $ text (c ^. responseBody)
-        return $ domEvent Click e $> (++ [c]) 
-
+    
     responseInContext :: forall t m. (MonadWidget t m)
                       => [T.Text]
                       -> [ResponseCard]
                       -> m (Event t ([ResponseCard] -> [ResponseCard]))
-    responseInContext = go
+    responseInContext c r = elClass "div" "card card-2 response-display" $ go c r
         where
             go [] _ = return never
             go (c:cs) [] = do
@@ -121,7 +97,7 @@ module GameView.FillBlanks.GamePlay where
                 go cs []
             go (c:cs) (r:rs) = do
                 elClass "span" "answer-call-segment" $ text c
-                (e, _) <- elAttr' "span" ("class" =: "answer-resp-segemnt") $ 
+                (e, _) <- elAttr' "span" ("class" =: "answer-resp-segment") $ 
                     text (r ^. responseBody)
                 rest <- go cs rs
                 return $ (domEvent Click e $> delete r) `mappend`rest
