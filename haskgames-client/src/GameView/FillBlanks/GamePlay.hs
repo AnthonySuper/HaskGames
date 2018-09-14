@@ -4,7 +4,8 @@
            , FlexibleContexts
            , NoMonomorphismRestriction
            , TemplateHaskell
-           , GADTs #-}
+           , GADTs
+           , AllowAmbiguousTypes #-}
 module GameView.FillBlanks.GamePlay where
     import Reflex.Dom
     import Game.FillBlanks.Game
@@ -18,8 +19,11 @@ module GameView.FillBlanks.GamePlay where
     import Control.Applicative (liftA2)
     import Data.Functor (($>), (<$))
     import Data.ByteString (ByteString)
+    import Data.Foldable
     import qualified Data.ByteString.Lazy as BS
     import qualified Data.Map as Map
+    import Data.Monoid
+    import Control.Monad (when)
     import Data.Maybe (maybe)
     import Data.List (delete)
 
@@ -85,12 +89,13 @@ module GameView.FillBlanks.GamePlay where
                 -> PersonalState
                 -> m ()
     displayHand call s = elClass "div" "hand-display" $ mdo
-        handDyn <- foldDyn ($) [] removeCards
+        handDyn <- foldDyn ($) [] $ leftmost [removeCards, q]
         -- Eventually make this be an event that returns a card lmao
         addCards <- elClass "ul" "hand-cards-list" $
             mapM displayResponseCard (s ^. personalStateHand)
+        let q = foldl mappend never addCards 
         resp <- dyn $ responseInContext callBody' <$> handDyn
-        removeCards <- switchHold (never $> id) resp 
+        removeCards <- switchHold (never $> id) resp
         return ()
         where
             callBody' :: [T.Text]
@@ -98,10 +103,10 @@ module GameView.FillBlanks.GamePlay where
 
     displayResponseCard :: (MonadWidget t m)
                         => ResponseCard
-                        -> m ()
+                        -> m (Event t ([ResponseCard] -> [ResponseCard]))
     displayResponseCard c = elClass "li" "response-card" $ do
-        el "h3" $ text (c ^. responseBody)
-        return ()
+        (e, _) <- el' "h3" $ text (c ^. responseBody)
+        return $ domEvent Click e $> (++ [c]) 
 
     responseInContext :: forall t m. (MonadWidget t m)
                       => [T.Text]
@@ -112,10 +117,12 @@ module GameView.FillBlanks.GamePlay where
             go [] _ = return never
             go (c:cs) [] = do
                 elClass "span" "answer-call-segment" $ text c
-                go cs [] 
+                when (cs /= []) $ elClass "span" "answer-resp-empty" $ text "_"
+                go cs []
             go (c:cs) (r:rs) = do
                 elClass "span" "answer-call-segment" $ text c
-                (e, _) <- elAttr' "span" ("class" =: "answer-resp-segemnt") $ text c
+                (e, _) <- elAttr' "span" ("class" =: "answer-resp-segemnt") $ 
+                    text (r ^. responseBody)
                 rest <- go cs rs
-                return $ leftmost [domEvent Click e $> delete r, rest]
+                return $ (domEvent Click e $> delete r) `mappend`rest
 
