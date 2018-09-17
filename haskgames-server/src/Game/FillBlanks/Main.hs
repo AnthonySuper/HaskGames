@@ -35,13 +35,21 @@ module Game.FillBlanks.Main where
     sendJson c m = sendTextData c (encode m)
 
     runGameBackend :: Game -> Backend' -> IO ()
-    runGameBackend game backend = runReaderT (serve game) backend
+    runGameBackend game backend = bracket_ printStart printEnd $ runReaderT (serve game) backend
+        where
+            printStart = do
+                s <- myThreadId
+                print $ concat ["Using thread ", show s, " to run a game"]
+            printEnd = do
+                s <- myThreadId
+                print $ concat ["Game in thread ", show s, " ended."]
 
     gameRead :: Connection -> T.Text -> TChan (SendMessage ServerEvent) -> IO ()
     gameRead c id chan = msg >> catch l handle 
         where
             handle :: SomeException -> IO ()
-            handle = const $ return ()
+            handle e = do 
+                disconnectMsg id e
             l = forever $ do
                 res <- atomically $ readTChan chan
                 case res of
@@ -53,6 +61,9 @@ module Game.FillBlanks.Main where
                         "Using thread ", show tid, " to route for ", show id
                     ]
 
+    disconnectMsg pid e = print $ concat msg 
+        where
+            msg = [show pid, " disconnected due to ", show e]
     gameWrite :: Connection -> T.Text -> TChan (RecvMessage ClientEvent) -> IO ()
     gameWrite conn id chan = catch (msg >> l) disconnect
         where
@@ -67,7 +78,8 @@ module Game.FillBlanks.Main where
                     Just e' -> atomically $ writeTChan chan $ GameEvent id e'
                     Nothing -> putStrLn "Failed to read a message, that's bad"
             disconnect :: SomeException -> IO ()
-            disconnect e =
+            disconnect e = do
+                disconnectMsg id e    
                 atomically $ writeTChan chan (PlayerDisconnected id)
                 
     joinGame backend conn id = do
@@ -89,7 +101,9 @@ module Game.FillBlanks.Main where
         CreateGame decks -> do
             print "Creating a game..."
             (g, b) <- createGame decks
+            print "Game created! Running backend"
             forkIO $ runGameBackend g b
+            sendJson c $ JoinedGame
             joinGame b c id
         ListGames -> do
             print "Listing games..."
@@ -103,7 +117,8 @@ module Game.FillBlanks.Main where
             case backend of
                 Nothing -> newPlayer c id
                 Just backend' -> do
-                    sendJson c $ JoinedGame 
+                    print "Found a working backend, joining..."
+                    sendJson c $ JoinedGame
                     joinGame backend' c id
         
     backendCounter :: TVar Integer
