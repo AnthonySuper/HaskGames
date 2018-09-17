@@ -40,6 +40,10 @@ module Game.Common where
         | GameEvent PlayerId re
         deriving (Show, Eq, Read, Generic, FromJSON, ToJSON)
 
+    logId :: (MonadLog m, ToJSON a)
+          => a -> m a
+    logId a = logJSON a >> return a 
+
     logShow :: (Show a, MonadLog m) => a -> m ()
     logShow = logMessage . T.pack . show
 
@@ -47,6 +51,14 @@ module Game.Common where
     logMessage m = logJSON json
         where
             json = object ["message" .= toJSON m]
+
+    sendPlayerMaybe :: (MonadSender e m, MonadLog m)
+                    => PlayerId
+                    -> Maybe e
+                    -> m ()
+    sendPlayerMaybe id v = case v of
+        Just v' -> sendPlayer id v' 
+        Nothing -> logShow ("SendPlayerMaybe called with Nothing", id) 
 
     instance MonadBroadcaster e Identity where
         broadcast _ = return ()

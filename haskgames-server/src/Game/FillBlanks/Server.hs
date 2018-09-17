@@ -5,6 +5,7 @@
            , FlexibleContexts
            , MultiParamTypeClasses
            , NoMonomorphismRestriction #-}
+
 module Game.FillBlanks.Server where
 
     import GHC.Generics
@@ -20,13 +21,14 @@ module Game.FillBlanks.Server where
     import Game.Common
     import Game.Basic
     import Data.Maybe
-    import Control.Monad (foldM)
+    import Control.Monad (foldM, join)
     import qualified Game.Backend.Common as GBC
     import Control.Monad.State.Strict
+    import Debug.Trace 
 
     serve :: MonadGame ServerEvent ClientEvent GameInfo m
           => Game -> m ()
-    serve s = recvEvent >>= go
+    serve s = recvEvent >>= logId >>= go
         where
             go (GameEvent pid evt) = do
                 logJSON (pid, evt)
@@ -49,12 +51,19 @@ module Game.FillBlanks.Server where
         let (_, ns) = runState (sitOutPlayer pid) s
         sendUpdates ns
 
-    sendError p msg s = (sendPlayer p $ InvalidSend msg) >> return s
+    sendError p msg s = 
+        (sendPlayer p $ InvalidSend msg) >> logJSON (errLabel, p, msg) >> return s
+        where
+            errLabel :: T.Text
+            errLabel = "Error:"
 
     serveJudgementEvt c p e
         | c `judgedBy` p = case e of
             SelectWinner w -> case increaseScoreJudgement c w of
-                Just c' -> startRound c'
+                Just c' -> do
+                    logJSON ("Awarded round win" :: T.Text, w)
+                    logShow c' 
+                    startRound c'
                 Nothing -> sendError p "Judgement did not exist" c
             _ -> sendError p "You must select a winner" c
         | otherwise = sendError p "You must select a winner" c
@@ -81,14 +90,18 @@ module Game.FillBlanks.Server where
                 return $ startJudgement updated
             else return updated 
              
-    sendUpdate :: MonadSender ServerEvent m
+    sendUpdate :: (MonadSender ServerEvent m, MonadLog m)
                => Game -> PlayerId -> m ()
     sendUpdate g id = do
-        let pinfolens = gameActivePlayers . at id 
-        let mby = g ^?! pinfolens 
-        let evt = UpdateState (toPublicGame g) (fromJust mby)
-        sendPlayer id evt
+        let ap = traceShowId $ g ^. gameActivePlayers
+        let ps = traceShowId $ Map.lookup id ap
+        logJSON ("Got personalState" :: T.Text, ps)
+        let evt = UpdateState (toPublicGame g) <$> ps
+        sendPlayerMaybe id evt
 
     sendUpdates g = do
-        mapM (sendUpdate g) (g ^. gameActivePlayers & Map.keys)
+        logMessage "Sending updates"
+        let keys = traceShowId (g ^. gameActivePlayers & Map.keys)
+        mapM_ (sendUpdate g) keys 
+        logMessage "Sent updates"
         return g

@@ -24,6 +24,7 @@ module Game.FillBlanks.ServerState where
     import Data.List ((\\))
     import Control.Monad.State.Strict
     import Data.Foldable (concat)
+    import Control.Monad (unless)
 
     data Game
         = Game
@@ -61,9 +62,12 @@ module Game.FillBlanks.ServerState where
 
     judgementPlayer :: Game -> JudgementCase -> Maybe PlayerId
     judgementPlayer gs c = 
-        gs  & judgementsMap
-            & Map.toList
-            & (^? traverse . filtered ((== c) . (^. _2)) . _1)
+        listToMaybe . Map.keys $ Map.filter isCase (gs ^. gameActivePlayers)
+        where
+            caseFor :: PersonalState -> Maybe JudgementCase
+            caseFor ps = ps ^? personalStateStatus . _Selector . _WaitingJudgement 
+            isCase :: PersonalState -> Bool
+            isCase ps = Just c == caseFor ps
 
     increaseScore :: Game -> PlayerId -> Game
     increaseScore gs i =
@@ -175,7 +179,8 @@ module Game.FillBlanks.ServerState where
     dealNonJudge :: MonadState Game m => Int -> PlayerId -> m ()
     dealNonJudge count id = do
         g <- get
-        if g `judgedBy` id then pure () else dealCardsTo count id
+        unless (g `judgedBy` id) $
+            dealCardsTo count id
 
     dealCardsTo :: MonadState Game m => Int -> PlayerId -> m ()
     dealCardsTo count id = do
@@ -191,13 +196,14 @@ module Game.FillBlanks.ServerState where
         where
             currentJudge = judgeOf g
     -- TODO: Skip "Sitting out" players
+
     judgeAfter :: Game -> PlayerId -> PlayerId
-    judgeAfter g i = 
-        g ^. gameActivePlayers 
-        & Map.keys 
-        & cycle
-        & dropWhile (<= i)
-        & (^?! _head)
+    judgeAfter g i = head (afterCandidate <> keys)
+        where
+            keys = g ^. gameActivePlayers & Map.keys
+            afterCandidate =
+                keys
+                & dropWhile (<= i)
 
     dealCards :: (MonadState Game m) 
               => Int -> m [ResponseCard] 
