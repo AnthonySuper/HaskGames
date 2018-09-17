@@ -44,7 +44,9 @@ module Game.FillBlanks.ServerState where
                 Selector SelectingCards -> True
                 Judge (PickingWinner _ _) -> True
                 _ -> False
-        
+    
+    playerAt i = gameActivePlayers . at i 
+
     judgementsMap :: Game -> Map.Map PlayerId JudgementCase
     judgementsMap g =
         g   ^. gameActivePlayers
@@ -178,7 +180,7 @@ module Game.FillBlanks.ServerState where
         call <- extractCall
         nj <- nextJudge <$> get 
         p <-  use gameActivePlayers
-        mapM_ setToSelecting (filter (/= nj) $ Map.keys p)
+        mapM_ (liftM2 unless (nj ==) setToSelecting) $ Map.keys p
         changeStatus nj (Judge $ WaitingCases call)
         return call 
 
