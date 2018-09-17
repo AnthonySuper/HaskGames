@@ -93,9 +93,7 @@ module Game.FillBlanks.ServerState where
             moveJudgeStatus >> return ()
         else return ()
         gameActivePlayers . at pid . _Just . personalStateStatus .= SittingOut
-        return () 
-
-        
+        return ()
         
     activeJudgementsL
         = gameActivePlayers . traverse . personalStateStatus .

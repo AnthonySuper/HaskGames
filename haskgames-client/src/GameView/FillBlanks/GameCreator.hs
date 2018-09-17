@@ -8,6 +8,7 @@
            , AllowAmbiguousTypes #-}
 module GameView.FillBlanks.GameCreator where
     import Reflex.Dom
+    import Reflex.Helpers
     import Data.Aeson
     import Game.FillBlanks.Game
     import qualified Data.Text as T
@@ -28,11 +29,11 @@ module GameView.FillBlanks.GameCreator where
             elAttr "label" labelAts $ text "Name"
             textInput $ def &
                 textInputConfig_attributes .~ pure fieldAts
-        decksDyn <- foldDyn ($) [] decksEvent
+        decksDyn <- foldDynAp [] decksEvent
         decksEvent <- decksList decksDyn
         btn <- button "Create Game"
         let createGame = toList . encode . CreateGame . map T.unpack <$> decksDyn 
-        return $ tag (current createGame) btn
+        return $ tagCurrent createGame btn
         where
             toList a = [a]
 
@@ -50,7 +51,7 @@ module GameView.FillBlanks.GameCreator where
             ti <- textInput $ def &
                 textInputConfig_attributes .~ pure fieldAts
             btn <- button "Add Card Cast Deck"
-            let inputValue = tag (current $ _textInput_value ti) btn 
+            let inputValue = tagValue ti btn 
             return $ toAdd <$> inputValue 
         return $ leftmost [removeEvt, addEvent]
             

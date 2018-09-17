@@ -8,6 +8,7 @@
            , AllowAmbiguousTypes #-}
 module GameView.FillBlanks.GamePlay where
     import Reflex.Dom
+    import Reflex.Helpers
     import Game.FillBlanks.Game
     import Game.FillBlanks.Event
     import Game.FillBlanks.Deck
@@ -23,22 +24,11 @@ module GameView.FillBlanks.GamePlay where
     import qualified Data.ByteString.Lazy as BS
     import qualified Data.Map as Map
     import Data.Monoid
-    import Control.Monad (when)
+    import Control.Monad (when, (>=>))
     import Data.Maybe (maybe)
     import Data.List (delete)
     import GameView.FillBlanks.HandSelector
     import GameView.FillBlanks.PlayerDisplay
-
-    whenDyn :: (MonadWidget t m)
-            => Dynamic t Bool
-            -> a 
-            -> m a
-            -> m (Event t a)
-    whenDyn filter def act = dyn widgetCreator
-        where
-            widgetCreator = widgetCreator' <$> filter
-            widgetCreator' True = act
-            widgetCreator' False = pure def 
 
     gamePlayWidget :: forall t m . (MonadWidget t m)
                    => WebSocket t
@@ -63,9 +53,8 @@ module GameView.FillBlanks.GamePlay where
         playerState <- holdUniqDyn $ view _2 <$> state
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
         playersList (view _1 <$> state)
-        submitDyn <- elClass "div" "gameplay-area" $ do
-            dyn $ displayHand <$> callCard <*> playerState
-        submitE <- switchHold never submitDyn
+        submitE <- elClass "div" "gameplay-area" $ do
+            dynHold $ displayHand <$> callCard <*> playerState
         return $ toList . encode . SubmitJudgement <$> submitE 
         where
             toList a = [a]
@@ -85,17 +74,14 @@ module GameView.FillBlanks.GamePlay where
                 -> PersonalState
                 -> m (Event t JudgementCase)
     displayHand call s = elClass "div" "hand-display" $ mdo
-        handDyn <- foldDyn ($) [] $ leftmost [removeCards, addCards]
-        responseDyn <- dyn $ responseInContext callBody' <$> handDyn
-        submitDyn <- whenDyn fullHand never $ button "Submit for Judgement"
-        submitEvt <- switchHold never submitDyn 
-        removeCards <- switchHold never responseDyn
-        addCardsDyn <- dyn $ 
+        handDyn <- foldDynAp [] $ leftmost [removeCards, addCards]
+        removeCards <- dynHold $ responseInContext callBody' <$> handDyn
+        submitEvt <- whenDynHold fullHand never $ button "Submit for Judgement"
+        addCards <- dynHold $ 
             responseCardSection callArity <$> handDyn <*> pure (s ^. personalStateHand)
-        addCards <- switchHold never $ addCardsDyn
         let judgementDyn = JudgementCase <$> handDyn <*> pure 102
         let fullHand = (callArity - 1 ==) . length <$> handDyn 
-        return $ tag (current judgementDyn) submitEvt
+        return $ tagCurrent judgementDyn submitEvt
         where
             callArity = length callBody'
             callBody' :: [T.Text]
