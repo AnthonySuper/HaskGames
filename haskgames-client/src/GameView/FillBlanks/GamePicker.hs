@@ -1,31 +1,38 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RecursiveDo, FlexibleContexts, NoMonomorphismRestriction, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings
+           , ScopedTypeVariables
+           , RecursiveDo
+           , FlexibleContexts
+           , NoMonomorphismRestriction
+           , TemplateHaskell
+           , GADTs
+           , AllowAmbiguousTypes #-}
 module GameView.FillBlanks.GamePicker where
     import Reflex.Dom
     import Data.Monoid
-    import Data.FileEmbed
     import Game.FillBlanks.Game
     import Data.Aeson
     import qualified Data.Text as T
-    import Data.Text.Encoding as E
     import Control.Lens 
     import Data.ByteString hiding (elem, concat)
     import Control.Monad.Fix
-    import qualified Data.ByteString.Lazy as BS 
+    import qualified Data.ByteString.Lazy as BS
+    import GameView.FillBlanks.GameCreator
 
-
-    gamePickerWidget :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
+    gamePickerWidget :: (MonadWidget t m)
                      => WebSocket t -> m (Event t [BS.ByteString])
     gamePickerWidget ws = el "div" $ do
         ds <- gameList $ ws & _webSocket_recv
         joinEvents <- el "ul" $ simpleList ds showGame
         let selectEvent = switchPromptlyDyn (joinEvents <&> leftmost)
         b <- button "Refresh List"
+        createGame <- gameCreator 
         let broadcastEvt = leftmost [ const [(encode ListGames)] <$> b
                                     , pure . encode . JoinGame <$> selectEvent
+                                    , createGame 
                                     ]
         return broadcastEvt
 
-    showGame :: (Reflex t, MonadHold t m, MonadFix m, DomBuilder t m, PostBuild t m)
+    showGame :: (MonadWidget t m)
              => Dynamic t GameInfo -> m (Event t Int)
     showGame g = el "div" $ do
         el "h1" $ display $ g <&> (^. gameInfoId)
@@ -37,7 +44,7 @@ module GameView.FillBlanks.GamePicker where
             return btn 
         return $ tagPromptlyDyn (g <&> (^. gameInfoId)) btn
 
-    gameList :: forall t m. (Reflex t, MonadHold t m, MonadFix m)
+    gameList :: forall t m. (MonadWidget t m)
              => Event t ByteString
              -> m (Dynamic t [GameInfo])
     gameList e = foldDyn folder [] (encodeCoordination e)
