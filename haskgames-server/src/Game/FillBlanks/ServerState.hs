@@ -21,6 +21,8 @@ module Game.FillBlanks.ServerState where
     import Data.Maybe
     import Control.Monad.State.Class
     import Control.Monad.Except
+    import Data.List ((\\))
+    import Control.Monad.State.Strict
 
     data Game
         = Game
@@ -128,9 +130,25 @@ module Game.FillBlanks.ServerState where
     
     nextTurn :: MonadState Game m => m ()
     nextTurn = do
+        returnCardsToDeck
         call <- moveJudgeStatus
         players <- use gameActivePlayers
         mapM_ (dealNonJudge (call & callArity)) $ Map.keys players
+
+    returnCardsToDeck :: MonadState Game m => m ()
+    returnCardsToDeck = do
+        cards <- gameActivePlayers . traverse %%= (runState removeJudgementCalls)
+        gameCurrentDeck . cardDeckResponses %= (<> cards)
+        return ()
+
+    removeJudgementCalls :: MonadState PersonalState m
+                         => m [ResponseCard]
+    removeJudgementCalls = do
+        s <- use personalStateStatus
+        let resp = s ^.. _Selector . _WaitingJudgement . judgementCaseCards . traverse
+        personalStateHand %= (\\ resp)
+        return resp
+        
 
     moveJudgeStatus :: MonadState Game m => m CallCard
     moveJudgeStatus = do 

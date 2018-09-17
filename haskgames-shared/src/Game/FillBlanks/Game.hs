@@ -118,10 +118,10 @@ module Game.FillBlanks.Game where
     canBeJudged a = isSittingOut a || isWaitingJudgement a || isJudge a
 
     judgementCases :: PublicGame -> [JudgementCase]
-    judgementCases g = join $ 
+    judgementCases g =  
         g ^.. publicGameActivePlayers . traverse . 
             impersonalStateStatus . _Judge . 
-            _PickingWinner . _2
+            _PickingWinner . _2 . traverse
 
     
     personalToImpersonal :: PersonalState -> ImpersonalState

@@ -60,7 +60,7 @@ module Game.FillBlanks.Server where
         | otherwise = sendError p "You must select a winner" c
         
     startRound g = do
-        let (nc, ng') = runState (nextTurn) g
+        let (nc, ng') = runState nextTurn g
         return ng'
     
     dealCardsU i g pid = let (nc, ng) = runState (dealCardsTo i pid) g in ng
