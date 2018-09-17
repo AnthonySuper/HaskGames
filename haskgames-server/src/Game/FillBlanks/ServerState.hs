@@ -137,10 +137,16 @@ module Game.FillBlanks.ServerState where
     hasSubmissionFrom s p = isJust $
         s ^? gameActivePlayers . at p . _Just . personalStateStatus . _Selector . _WaitingJudgement
     
+    changeStatus :: MonadState Game m
+                 => PlayerId 
+                 -> PlayerStatus JudgementCase 
+                 -> m ()
+    changeStatus id s =
+        gameActivePlayers . at id . _Just . personalStateStatus .= s 
+
     -- TODO: Make this function put the cards at the bottom of the deck
     setToSelecting :: MonadState Game m => PlayerId -> m ()
-    setToSelecting i = 
-        gameActivePlayers . at i . _Just . personalStateStatus .= (Selector SelectingCards)
+    setToSelecting i = changeStatus i (Selector SelectingCards)
     
     nextTurn :: MonadState Game m => m ()
     nextTurn = do
@@ -173,7 +179,7 @@ module Game.FillBlanks.ServerState where
         nj <- nextJudge <$> get 
         p <-  use gameActivePlayers
         mapM_ setToSelecting (filter (/= nj) $ Map.keys p)
-        gameActivePlayers . at nj . _Just . personalStateStatus .= (Judge $ WaitingCases call)
+        changeStatus nj (Judge $ WaitingCases call)
         return call 
 
     dealNonJudge :: MonadState Game m => Int -> PlayerId -> m ()
@@ -190,11 +196,11 @@ module Game.FillBlanks.ServerState where
 
     -- TODO: Fix 
     nextJudge :: Game -> PlayerId 
-    nextJudge g = case currentJudge of
-        Just j -> judgeAfter g j
-        Nothing -> (g ^. gameActivePlayers & Map.keys & head)
-        where
-            currentJudge = judgeOf g
+    nextJudge g = 
+        maybe 
+            (g ^. gameActivePlayers & Map.keys & head)
+            (judgeAfter g)
+            $ judgeOf g 
     -- TODO: Skip "Sitting out" players
 
     judgeAfter :: Game -> PlayerId -> PlayerId
