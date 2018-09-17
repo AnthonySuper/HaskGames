@@ -28,8 +28,9 @@ module Game.FillBlanks.Server where
           => Game -> m ()
     serve s = recvEvent >>= go
         where
-            go (GameEvent pid evt) =
-                serveEvent s pid evt >>= serve
+            go (GameEvent pid evt) = do
+                logJSON (pid, evt)
+                serveEvent s pid evt >>= sendUpdates >>= serve
             go (PlayerConnected pid) = connectPlayer pid s >>= serve
             go (PlayerDisconnected pid) = disconnectPlayer pid s >>= serve
 
@@ -77,9 +78,8 @@ module Game.FillBlanks.Server where
         | otherwise = do
             let updated = addJudgement s p j
             if judgeable updated then do
-                let updated' = startJudgement updated
-                sendUpdates updated'
-            else sendUpdates updated 
+                return $ startJudgement updated
+            else return updated 
              
     sendUpdate :: MonadSender ServerEvent m
                => Game -> PlayerId -> m ()

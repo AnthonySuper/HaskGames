@@ -25,7 +25,7 @@ module GameView.FillBlanks.GamePlay where
     import qualified Data.Map as Map
     import Data.Monoid
     import Control.Monad (when, (>=>))
-    import Data.Maybe (maybe)
+    import Data.Maybe (maybe, isJust)
     import Data.List (delete)
     import GameView.FillBlanks.HandSelector
     import GameView.FillBlanks.PlayerDisplay
@@ -51,13 +51,99 @@ module GameView.FillBlanks.GamePlay where
                   -> m (Event t [BS.ByteString])
     gamePlayInner state = do
         playerState <- holdUniqDyn $ view _2 <$> state
+        publicState <- holdUniqDyn $ view _1 <$> state 
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
         playersList (view _1 <$> state)
-        submitE <- elClass "div" "gameplay-area" $ do
-            dynHold $ displayHand <$> callCard <*> playerState
-        return $ toList . encode . SubmitJudgement <$> submitE 
+        broadcastE <- elClass "div" "gameplay-area" $ do
+            je <- judgingArea callCard playerState publicState
+            se <- dynHold $ selectingArea <$> callCard <*> playerState
+            
+            return $ traceEvent "Sending Broadcast Event" $ leftmost [se, je]
+        return broadcastE
         where
             toList a = [a]
+
+    -- You are selecting, select your cards
+    -- You are waiting for cases to be in, here's what you selected
+    -- You are waiting judgement, here's all the judgement cases, here's what yours was
+    -- You are waiting cases to judge, here's the call card
+    -- You are judging, here's the cases to pick from
+
+
+    judgingArea :: MonadWidget t m
+                => Dynamic t (Maybe CallCard)
+                -> Dynamic t PersonalState
+                -> Dynamic t PublicGame
+                -> m (Event t [BS.ByteString])
+    judgingArea call ps pg = elClass "div" "judgement-area" $ mdo
+        selected <- holdDyn Nothing (Just <$> selEvt) 
+        selEvts <- simpleList (judgementCases <$> pg) $ showJudgementCase call selected
+        let selEvt = switch (current $ leftmost <$> selEvts) -- Event t JudgementCase
+        sendEvent <- whenDynHold (canJudge <$> ps <*> selected) never $ 
+            button "Select"
+        return $ tagCurrent (winnerEvt <$> selected) sendEvent 
+        where 
+            winnerEvt Nothing = []
+            winnerEvt (Just a) = [encode . SelectWinner $ a]
+            canJudge ps sel = isJudge ps && (isJust sel)
+
+    showJudgementCase :: MonadWidget t m
+                      => Dynamic t (Maybe CallCard)
+                      -> Dynamic t (Maybe JudgementCase) 
+                      -> Dynamic t JudgementCase
+                      -> m (Event t JudgementCase)
+    showJudgementCase card sel jc = elClass "div" "judgement-case" $ do
+        dynHold $ judgementResponse <$> callBody' <*> eqA <*> jc
+        where
+            callBody' = maybe [] (^. callBody) <$> card
+            eqA = liftA2 (==) sel (Just <$> jc)
+
+    judgementResponse :: (MonadWidget t m)
+                      => [T.Text]
+                      -> Bool 
+                      -> JudgementCase
+                      -> m (Event t JudgementCase)
+    judgementResponse body sel jc = do
+        let attrs = ("class" =: klass)
+        (el, _) <- elAttr' "span" attrs $ 
+            responseInContext body (jc ^. judgementCaseCards)
+        return $ domEvent Click el $> jc
+        where
+            klass = 
+                if sel then
+                    "judgement-selected"
+                else
+                    ""
+        
+
+    selectingArea :: MonadWidget t m
+                  => Maybe CallCard
+                  -> PersonalState
+                  -> m (Event t [BS.ByteString])
+    selectingArea card state = case state ^. personalStateStatus of
+        Selector SelectingCards -> do 
+            judgeSelect <- handSelector card state
+            return $ toList . encode . SubmitJudgement <$> judgeSelect 
+        Selector (WaitingJudgement jc) -> do 
+            judgementWaiter card jc
+            return never
+        _ -> return never
+        where
+            toList a = [a]
+
+
+    judgementWaiter :: MonadWidget t m
+                    => Maybe CallCard
+                    -> JudgementCase
+                    -> m () 
+    judgementWaiter call jc = elClass "div" "judgement-waiter" $ do
+        el "h3" $ text "Awaiting Judgement..."
+        el "h4" $ text "Your response was: "
+        responseInContext callBody' (jc ^. judgementCaseCards)
+        return ()
+        where
+            callBody' :: [T.Text]
+            callBody' = maybe [] (^. callBody) call 
 
     gameStateDyn :: forall t m. (Reflex t, MonadHold t m, MonadFix m)
                  => Event t ByteString
@@ -69,11 +155,11 @@ module GameView.FillBlanks.GamePlay where
             encoded :: Event t ServerEvent
             encoded = fmapMaybe decodeStrict e
 
-    displayHand :: (MonadWidget t m)
-                => Maybe CallCard
-                -> PersonalState
-                -> m (Event t JudgementCase)
-    displayHand call s = elClass "div" "hand-display" $ mdo
+    handSelector :: (MonadWidget t m)
+                 => Maybe CallCard
+                 -> PersonalState
+                 -> m (Event t JudgementCase)
+    handSelector call s = elClass "div" "hand-display" $ mdo
         handDyn <- foldDynAp [] $ leftmost [removeCards, addCards]
         removeCards <- dynHold $ responseInContext callBody' <$> handDyn
         submitEvt <- whenDynHold fullHand never $ button "Submit for Judgement"

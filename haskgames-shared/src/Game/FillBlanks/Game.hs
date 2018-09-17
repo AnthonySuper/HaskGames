@@ -9,6 +9,7 @@ module Game.FillBlanks.Game where
     import Game.FillBlanks.Deck
     import Data.Maybe
     import Game.Basic
+    import Control.Monad (join)
 
     data GameStatus
         = AwaitingSubmissions
@@ -115,6 +116,13 @@ module Game.FillBlanks.Game where
         p ^? personalStateStatus . _Selector . _WaitingJudgement
 
     canBeJudged a = isSittingOut a || isWaitingJudgement a || isJudge a
+
+    judgementCases :: PublicGame -> [JudgementCase]
+    judgementCases g = join $ 
+        g ^.. publicGameActivePlayers . traverse . 
+            impersonalStateStatus . _Judge . 
+            _PickingWinner . _2
+
     
     personalToImpersonal :: PersonalState -> ImpersonalState
     personalToImpersonal p 
