@@ -23,6 +23,7 @@ module Game.FillBlanks.ServerState where
     import Control.Monad.Except
     import Data.List ((\\))
     import Control.Monad.State.Strict
+    import Data.Foldable (concat)
 
     data Game
         = Game
@@ -35,6 +36,14 @@ module Game.FillBlanks.ServerState where
 
     makeLenses ''Game
 
+    needInput :: Game -> [PlayerId]
+    needInput = Map.keys . Map.filter needInput' . view gameActivePlayers
+        where
+            needInput' v = case v ^. personalStateStatus of
+                Selector SelectingCards -> True
+                Judge (PickingWinner _ _) -> True
+                _ -> False
+        
     judgementsMap :: Game -> Map.Map PlayerId JudgementCase
     judgementsMap g =
         g   ^. gameActivePlayers
@@ -137,8 +146,12 @@ module Game.FillBlanks.ServerState where
 
     returnCardsToDeck :: MonadState Game m => m ()
     returnCardsToDeck = do
-        cards <- gameActivePlayers . traverse %%= (runState removeJudgementCalls)
-        gameCurrentDeck . cardDeckResponses %= (<> cards)
+        resps <- gameActivePlayers . traverse %%= (runState removeJudgementCalls)
+        gameCurrentDeck . cardDeckResponses %= (<> resps)
+        s <- get
+        let call = s ^.. gameActivePlayers . traverse . 
+                personalStateStatus . _Judge . _PickingWinner . _1
+        gameCurrentDeck . cardDeckCalls %= (<> call) 
         return ()
 
     removeJudgementCalls :: MonadState PersonalState m
