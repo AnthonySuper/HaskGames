@@ -64,7 +64,10 @@ module Game.FillBlanks.ServerState where
     increaseScoreJudgement gs j = increaseScore gs <$> judgementPlayer gs j
 
     addJudgement :: Game -> PlayerId -> JudgementCase -> Game
-    addJudgement c p j = undefined
+    addJudgement c p j = 
+        c & gameActivePlayers . at p . _Just . personalStateStatus .~ status
+        where
+            status = Selector $ WaitingJudgement j 
 
     addPlayer :: (MonadState Game m)
               => PlayerId -> m ()

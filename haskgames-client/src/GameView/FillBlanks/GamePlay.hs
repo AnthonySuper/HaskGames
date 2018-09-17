@@ -29,6 +29,16 @@ module GameView.FillBlanks.GamePlay where
     import GameView.FillBlanks.HandSelector
     import GameView.FillBlanks.PlayerDisplay
 
+    whenDyn :: (MonadWidget t m)
+            => Dynamic t Bool
+            -> a 
+            -> m a
+            -> m (Event t a)
+    whenDyn filter def act = dyn widgetCreator
+        where
+            widgetCreator = widgetCreator' <$> filter
+            widgetCreator' True = act
+            widgetCreator' False = pure def 
 
     gamePlayWidget :: forall t m . (MonadWidget t m)
                    => WebSocket t
@@ -36,25 +46,29 @@ module GameView.FillBlanks.GamePlay where
     gamePlayWidget ws = elClass "div" "play-container" $ do
         maybeState <- (gameStateDyn $ ws & _webSocket_recv)
         state <- maybeDyn maybeState
-        dyn $ gamePlayM <$> state
-        return never
+        socketDyn <- dyn $ gamePlayM <$> state
+        actEvent <- switchHold never socketDyn
+        return actEvent
 
     gamePlayM :: forall t m. (MonadWidget t m)
               => Maybe (Dynamic t (PublicGame, PersonalState))
-              -> m ()
-    gamePlayM Nothing = return ()
+              -> m (Event t [BS.ByteString])
+    gamePlayM Nothing = return never
     gamePlayM (Just s) = gamePlayInner s
 
     gamePlayInner :: forall t m . (MonadWidget t m)
                   => Dynamic t (PublicGame, PersonalState)
-                  -> m ()
+                  -> m (Event t [BS.ByteString])
     gamePlayInner state = do
         playerState <- holdUniqDyn $ view _2 <$> state
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
         playersList (view _1 <$> state)
-        elClass "div" "gameplay-area" $ do
+        submitDyn <- elClass "div" "gameplay-area" $ do
             dyn $ displayHand <$> callCard <*> playerState
-        return ()
+        submitE <- switchHold never submitDyn
+        return $ toList . encode . SubmitJudgement <$> submitE 
+        where
+            toList a = [a]
 
     gameStateDyn :: forall t m. (Reflex t, MonadHold t m, MonadFix m)
                  => Event t ByteString
@@ -69,16 +83,19 @@ module GameView.FillBlanks.GamePlay where
     displayHand :: (MonadWidget t m)
                 => Maybe CallCard
                 -> PersonalState
-                -> m ()
+                -> m (Event t JudgementCase)
     displayHand call s = elClass "div" "hand-display" $ mdo
         handDyn <- foldDyn ($) [] $ leftmost [removeCards, addCards]
         responseDyn <- dyn $ responseInContext callBody' <$> handDyn
+        submitDyn <- whenDyn fullHand never $ button "Submit for Judgement"
+        submitEvt <- switchHold never submitDyn 
         removeCards <- switchHold never responseDyn
         addCardsDyn <- dyn $ 
             responseCardSection callArity <$> handDyn <*> pure (s ^. personalStateHand)
         addCards <- switchHold never $ addCardsDyn
-        let q = addCards
-        return ()
+        let judgementDyn = JudgementCase <$> handDyn <*> pure 102
+        let fullHand = (callArity - 1 ==) . length <$> handDyn 
+        return $ tag (current judgementDyn) submitEvt
         where
             callArity = length callBody'
             callBody' :: [T.Text]

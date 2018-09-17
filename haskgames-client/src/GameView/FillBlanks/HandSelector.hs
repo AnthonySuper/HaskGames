@@ -33,12 +33,12 @@ module GameView.FillBlanks.HandSelector where
         = do
             k <- elClass "ul" "hand-cards-list" $
                 mapM displayResponseCard collection
-            return $ 
+            return $
                 ffilter filtering . fmap toAdding $
                     leftmost k
         where
             filtering :: a -> Bool
-            filtering = const (arity > (length chosen))
+            filtering = const (arity - 1 > (length chosen))
             toAdding :: ResponseCard -> [ResponseCard] -> [ResponseCard]
             toAdding c cs = cs ++ [c]
             collection = filter (not . flip elem chosen) cards
