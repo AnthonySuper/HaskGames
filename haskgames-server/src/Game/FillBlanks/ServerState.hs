@@ -93,6 +93,7 @@ module Game.FillBlanks.ServerState where
                 call <- extractCall
                 let p = PersonalState [] (Judge $ WaitingCases call) 0
                 gameActivePlayers . at pid .= Just p
+                dealCardsTo 6 pid 
                 return ()
             Just _ -> do
                 let p = PersonalState [] (Selector SelectingCards) 0
@@ -165,7 +166,6 @@ module Game.FillBlanks.ServerState where
         let resp = s ^.. _Selector . _WaitingJudgement . judgementCaseCards . traverse
         personalStateHand %= (\\ resp)
         return resp
-        
 
     moveJudgeStatus :: MonadState Game m => m CallCard
     moveJudgeStatus = do 
