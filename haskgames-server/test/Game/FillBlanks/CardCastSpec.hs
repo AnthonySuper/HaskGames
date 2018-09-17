@@ -15,10 +15,8 @@ spec = do
     describe "Converting call cards" $ do
         let call = Call ["What's in the box? ", "."] "asdf"
         let converted = callToGame call
-        it "properly sets the id" $
-            converted ^. callBody `shouldBe` "What's in the box? _."
-        it "properly sets the arity" $
-            converted ^. callArity `shouldBe` 1
+        it "properly sets the body" $
+            converted ^. callBody `shouldBe` ["What's in the box? ", "."]
         it "properly sets the source" $
             converted ^. callSource `shouldBe` CardCastDeck "asdf"
     describe "Converting response cards" $ do 

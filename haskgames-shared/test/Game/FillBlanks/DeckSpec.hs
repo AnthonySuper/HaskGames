@@ -8,7 +8,7 @@ import Game.FillBlanks.Deck
 import Data.Monoid
 
 exResp = ResponseCard "Test" FillIn
-exCall = CallCard "What test? _." 1 FillIn
+exCall = CallCard ["What test?", "."] FillIn
 exDeck = CardDeck [exCall] [exResp]
 
 spec = do 
