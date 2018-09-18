@@ -44,18 +44,19 @@ module Game.FillBlanks.ServerState where
                 Selector SelectingCards -> True
                 Judge (PickingWinner _ _) -> True
                 _ -> False
-                
-    
-    playerAt i = gamePlayers . at i 
+
+    playerAt i = gamePlayers . at i
+
+    traverseStatuses = gamePlayers . traverse . personalStateStatus 
 
     beingJudgedM :: (MonadState Game m) => m Bool
     beingJudgedM = do 
-        s <- preuse $ gamePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
+        s <- preuse $ traverseStatuses . _Judge . _PickingWinner
         return $ isJust s 
 
     beingJudged :: Game -> Bool
     beingJudged g = isJust $ 
-        g ^? gamePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
+        g ^? traverseStatuses . _Judge . _PickingWinner
 
     winner :: Game -> Maybe PlayerId
     winner gs = fst <$> listToMaybe (Map.toList winners)
@@ -115,7 +116,7 @@ module Game.FillBlanks.ServerState where
         return ()
         
     activeJudgementsL
-        = gamePlayers . traverse . personalStateStatus .
+        = traverseStatuses .
           _Selector . _WaitingJudgement 
 
     activeJudgements g =
@@ -231,7 +232,7 @@ module Game.FillBlanks.ServerState where
 
     judgementCases :: Game -> [JudgementCase]
     judgementCases g = 
-        g ^.. gamePlayers . traverse . personalStateStatus . _Selector . _WaitingJudgement 
+        g ^.. traverseStatuses . _Selector . _WaitingJudgement 
 
     toPublicGame :: Game -> PublicGame
     toPublicGame g =
@@ -240,7 +241,7 @@ module Game.FillBlanks.ServerState where
     startJudgement g
         = g & judgeLens .~ PickingWinner call (activeJudgements g)
         where
-            judgeLens = gamePlayers . traverse . personalStateStatus . _Judge
+            judgeLens = traverseStatuses . _Judge
             -- TODO: Make safer please
             call = g ^?! judgeLens . _WaitingCases
 
@@ -249,4 +250,4 @@ module Game.FillBlanks.ServerState where
         = g ^? judgeLens . _WaitingCases
             <|> g ^? judgeLens . _PickingWinner . _1 
         where
-            judgeLens = gamePlayers . traverse . personalStateStatus . _Judge 
+            judgeLens = traverseStatuses . _Judge 
