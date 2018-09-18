@@ -69,9 +69,9 @@ module Game.FillBlanks.CardCast.Internal where
     parseCardCast = parseCardCast_ decode
     parseCardCast' = parseCardCast_ decode'
 
-    cardsUrl s = concat ["https://api.cardcastgame.com/v1/decks/", s, "/cards"]
+    cardsUrl s = T.concat ["https://api.cardcastgame.com/v1/decks/", s, "/cards"]
 
-    getCardDeck :: String -> IO (Maybe CardDeck)
+    getCardDeck :: T.Text -> IO (Maybe CardDeck)
     getCardDeck id = do
-        t <- Req.get $ cardsUrl id
+        t <- Req.get . T.unpack $ cardsUrl id
         return $ parseCardCast' (t ^. Req.responseBody)

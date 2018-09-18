@@ -33,16 +33,11 @@ module GameView.FillBlanks.GamePicker where
         return broadcastEvt
 
     showGame :: (MonadWidget t m)
-             => Dynamic t GameInfo -> m (Event t Int)
+             => Dynamic t GameInfo -> m (Event t T.Text)
     showGame g = el "div" $ do
-        el "h1" $ display $ g <&> (^. gameInfoId)
-        btn <- el "div" $ do
-            el "h2" $ text "Using Decks:"
-            el "ul" $
-                simpleList (g <&> (^. gameInfoDecks)) display
-            btn <- button "Join Game"
-            return btn 
-        return $ tagPromptlyDyn (g <&> (^. gameInfoId)) btn
+        el "h1" $ display $ view gameInfoName <$> g 
+        btn <- button "Join Game"
+        return $ tagPromptlyDyn (view gameInfoName <$> g) btn
 
     gameList :: forall t m. (MonadWidget t m)
              => Event t ByteString

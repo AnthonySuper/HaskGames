@@ -26,54 +26,59 @@ module Game.FillBlanks.Coordinator where
 
     type Backend' = Backend ServerEvent ClientEvent GameInfo
 
+    data CoordinationItem
+        = CoordinationItem 
+        {   _coordinationItemBackend :: Backend'
+        ,   _coordinationItemCreator :: GameCreator 
+        }
+
+    makeLenses ''CoordinationItem
+
     data Coordination
         = Coordination
-        { _coordinationGames :: [Backend']
-        , _coordinationCounter :: Int
+        { _coordinationGames :: Map.Map T.Text CoordinationItem
         }
     makeLenses ''Coordination
 
     cardCoordinator :: TVar Coordination
-    cardCoordinator = unsafePerformIO (newTVarIO $ Coordination [] 0)
+    cardCoordinator = unsafePerformIO (newTVarIO $ Coordination mempty)
+
+    getGames' :: Coordination -> [Backend']
+    getGames' = toListOf $ coordinationGames . traverse . coordinationItemBackend 
 
     getGames :: IO [Backend']
     getGames 
         = readTVarIO cardCoordinator
-        <&> (^. coordinationGames)
+        <&> (getGames')
 
-    createGame :: [String] -> IO (Game, Backend')
-    createGame decks = do 
-        cards <- cardCastsToDeck decks
+
+    createGame :: GameCreator -> IO (Game, Backend')
+    createGame creator = do
+        
+        cards <- cardCastsToDeck (creator ^. gameCreatorDecks)
         backend <- atomically $ do
             coordinator <- readTVar cardCoordinator
             backend <- newBackend
-            let ns = GameInfo (map T.pack decks) mempty (coordinator ^. coordinationCounter) 
+            let item = CoordinationItem backend creator 
+            let ns = GameInfo mempty (creator ^. gameCreatorName) 
             writeTVar (backend ^. backendState) $ Just ns
-            modifyTVar cardCoordinator (coordinationCounter %~ (+1))
-            modifyTVar cardCoordinator (coordinationGames %~ (backend :))
+            modifyTVar cardCoordinator $
+                coordinationGames %~ Map.insert (creator ^. gameCreatorName) item
             return backend
         let game = Game 10 cards cards mempty
         return (game, backend)
 
     getInfo :: IO [GameInfo]
-    getInfo 
-        = (^. coordinationGames) <$> readTVarIO cardCoordinator
-        >>= mapM (readTVarIO . (^. backendState))
+    getInfo = getGames
+        >>= mapM (readTVarIO . (view backendState))
         <&> catMaybes
 
-    getBackend :: Int -> IO (Maybe Backend')
-    getBackend i = do
-        coordinator <- readTVarIO cardCoordinator
-        withId <- filterM (hasId i) (coordinator ^. coordinationGames)
-        return $ listToMaybe withId 
+    getBackend :: T.Text -> IO (Maybe Backend')
+    getBackend i = readTVarIO cardCoordinator
+            <&> preview (coordinationGames . at i . _Just . coordinationItemBackend)
+        
 
-    hasId :: Int -> Backend' -> IO Bool
-    hasId i x = do 
-        r <- readTVarIO (x ^. backendState)
-        let id' = r <&> (^. gameInfoId)
-        return $ id' == Just i
-    
-    cardCastsToDeck :: [String] -> IO CardDeck
+    cardCastsToDeck :: [T.Text] -> IO CardDeck
     cardCastsToDeck s = do
         decks <- mapConcurrently getCardDeck s
         let real = catMaybes decks

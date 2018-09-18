@@ -32,7 +32,8 @@ module GameView.FillBlanks.GameCreator where
         decksDyn <- foldDynAp [] decksEvent
         decksEvent <- decksList decksDyn
         btn <- button "Create Game"
-        let createGame = toList . encode . CreateGame . map T.unpack <$> decksDyn 
+        let creationDyn = GameCreator <$> decksDyn <*> (value nameInput) <*> pure Nothing <*> pure 10
+        let createGame = toList . encode . CreateGame <$> creationDyn
         return $ tagCurrent createGame btn
         where
             toList a = [a]
@@ -57,8 +58,6 @@ module GameView.FillBlanks.GameCreator where
             
         where
             toAdd text deck = deck ++ [text]
-
-
         
     displayDeck :: (MonadWidget t m)
                 => Dynamic t T.Text

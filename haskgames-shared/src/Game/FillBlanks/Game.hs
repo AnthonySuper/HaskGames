@@ -76,17 +76,26 @@ module Game.FillBlanks.Game where
 
     data GameInfo
         = GameInfo
-        { _gameInfoDecks :: [T.Text]
-        , _gameInfoScores :: Map.Map PlayerId Int
-        , _gameInfoId :: Int
+        { _gameInfoScores :: Map.Map PlayerId Int
+        , _gameInfoName :: T.Text
         }
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
     makeLenses ''GameInfo
 
+    data GameCreator
+        = GameCreator
+        { _gameCreatorDecks :: [T.Text] 
+        , _gameCreatorName :: T.Text
+        , _gameCreatorPassword :: Maybe T.Text
+        , _gameCreatorMaxScore :: Int 
+        } deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+    
+    makeLenses ''GameCreator 
+
     data CoordinationMessage
-        = JoinGame Int
-        | CreateGame [String]
+        = JoinGame T.Text
+        | CreateGame GameCreator
         | ListGames
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 

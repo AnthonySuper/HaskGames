@@ -63,13 +63,6 @@ module GameView.FillBlanks.GamePlay where
         where
             toList a = [a]
 
-    -- You are selecting, select your cards
-    -- You are waiting for cases to be in, here's what you selected
-    -- You are waiting judgement, here's all the judgement cases, here's what yours was
-    -- You are waiting cases to judge, here's the call card
-    -- You are judging, here's the cases to pick from
-
-
     judgingArea :: MonadWidget t m
                 => Dynamic t (Maybe CallCard)
                 -> Dynamic t PersonalState
