@@ -47,6 +47,11 @@ module Game.FillBlanks.ServerState where
     
     playerAt i = gameActivePlayers . at i 
 
+    beingJudgedM :: (MonadState Game m) => m Bool
+    beingJudgedM = do 
+        s <- preuse $ gameActivePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
+        return $ isJust s 
+
     beingJudged :: Game -> Bool
     beingJudged g = isJust $ 
         g ^? gameActivePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
