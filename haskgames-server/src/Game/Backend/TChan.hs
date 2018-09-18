@@ -42,6 +42,13 @@ module Game.Backend.TChan where
 
     makeLenses ''Backend
 
+
+    instance GameBackend (Backend s r t) s r where
+        getBackendBroadcast backend =
+            atomically $ readTChan $ backend ^. backendBroadcast
+        putBackendMessage backend m = 
+            atomically $ writeTChan (backend ^. backendRecv) m 
+
     newtype ChannelBackendT s r t m a = 
         ChannelBackendT { getChannelBackendT :: ReaderT (Backend s r t) m a }
         deriving (Functor, Applicative, Monad, MonadTrans,
@@ -89,8 +96,7 @@ module Game.Backend.TChan where
         recvEvent = do
             backend <- ask
             let chan = backend ^. backendRecv
-            liftIO . putStrLn $ "Trying to read from the channel..."
-            liftIO $ ((atomically $ readTChan chan) <* putStrLn "Okay we read nice")
+            liftIO $ atomically $ readTChan chan
         
     instance (Monad m, MonadIO m) => MonadGamePublic t (ChannelBackendT s r t m) where
         tellPublic s = do

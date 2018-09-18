@@ -28,7 +28,16 @@ module Game.Backend.Common where
     recvJSONMessage m = decode <$> recvMessage m
 
     -- | A typeclass representing things that are "like sockets" in that they can
-    --   either send or recv messages 
+    -- | send and receive strings of bytes. 
     class PlayerMessenger m where
+        -- Send a message, possibly blocking to do so
         sendMessage :: m -> BS.ByteString -> IO ()
-        recvMessage :: m -> IO BS.ByteString
+        -- Receive a message, possibly blocking
+        recvMessage :: m -> IO BS.ByteString  
+        --
+
+    class GameBackend b s r | b -> s, b -> r where
+        getBackendBroadcast :: b -> IO (SendMessage s)
+        putBackendMessage :: b -> RecvMessage r -> IO ()
+        --
+    

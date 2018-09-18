@@ -15,6 +15,7 @@ module Game.FillBlanks.Main where
     import Game.FillBlanks.CardCast
     import Game.FillBlanks.Deck
     import Game.Common
+    import Game.Basic
     import Game.FillBlanks.ServerState
     import Data.Foldable
     import Data.Maybe
@@ -30,6 +31,18 @@ module Game.FillBlanks.Main where
     import Game.FillBlanks.Coordinator
     import Control.Monad.State.Strict
 
+    data PlayerThreadType = WriterThread | ReaderThread
+        deriving (Show)
+
+    data LogMessage
+        = GameThreadStarted ThreadId
+        | GameThreadEnded ThreadId
+        | PlayerThreadStarted PlayerId PlayerThreadType ThreadId
+        | PlayerThreadEnded PlayerId PlayerThreadType ThreadId
+        deriving (Show)
+
+    printWithTID a = print =<< a <$> myThreadId 
+
     receiveJson :: (FromJSON a) => Connection -> IO (Maybe a)
     receiveJson c = decode <$> receiveData c
 
@@ -41,29 +54,21 @@ module Game.FillBlanks.Main where
         where
             run =
                 evalStateT (runChannelBackendT serve backend) game
-            printStart = do
-                s <- myThreadId
-                print $ concat ["Using thread ", show s, " to run a game"]
-            printEnd = do
-                s <- myThreadId
-                print $ concat ["Game in thread ", show s, " ended."]
+            printStart = printWithTID GameThreadStarted
+            printEnd = printWithTID GameThreadEnded
 
     gameRead :: Connection -> T.Text -> TChan (SendMessage ServerEvent) -> IO ()
     gameRead c id chan = msg >> catch l handle 
         where
             handle :: SomeException -> IO ()
             handle e = do 
-                disconnectMsg id e
+                printWithTID $ PlayerThreadEnded id ReaderThread
             l = forever $ do
                 res <- atomically $ readTChan chan
                 case res of
                     BroadcastMessage m -> sendJson c m
                     DirectedMessage i m -> when (id == i) $ sendJson c m
-            msg = do 
-                tid <- myThreadId
-                print $ concat $ [
-                        "Using thread ", show tid, " to route for ", show id
-                    ]
+            msg = printWithTID $ PlayerThreadStarted id ReaderThread
 
     disconnectMsg pid e = print $ concat msg 
         where
@@ -72,11 +77,7 @@ module Game.FillBlanks.Main where
     gameWrite :: Connection -> T.Text -> TChan (RecvMessage ClientEvent) -> IO ()
     gameWrite conn id chan = catch (msg >> l) disconnect
         where
-            msg = do
-                tid <- myThreadId
-                print $ concat $ [
-                        "Using thread ", show tid, " to route writes for ", show id
-                    ]
+            msg = printWithTID $ PlayerThreadStarted id WriterThread
             l = forever $ do
                 e <- receiveJson conn
                 case e of
@@ -84,7 +85,7 @@ module Game.FillBlanks.Main where
                     Nothing -> putStrLn "Failed to read a message, that's bad"
             disconnect :: SomeException -> IO ()
             disconnect e = do
-                disconnectMsg id e    
+                printWithTID $ PlayerThreadEnded id WriterThread   
                 atomically $ writeTChan chan (PlayerDisconnected id)
                 
     joinGame backend conn id = do
