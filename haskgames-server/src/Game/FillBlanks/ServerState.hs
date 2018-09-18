@@ -31,40 +31,41 @@ module Game.FillBlanks.ServerState where
         { _gameWinScore :: Int
         , _gameFullDeck :: CardDeck
         , _gameCurrentDeck :: CardDeck
-        , _gameActivePlayers :: Map.Map PlayerId PersonalState
+        , _gamePlayers :: Map.Map PlayerId PersonalState
         }
         deriving (Show, Read, Eq, Generic)
 
     makeLenses ''Game
 
     needInput :: Game -> [PlayerId]
-    needInput = Map.keys . Map.filter needInput' . view gameActivePlayers
+    needInput = Map.keys . Map.filter needInput' . view gamePlayers
         where
             needInput' v = case v ^. personalStateStatus of
                 Selector SelectingCards -> True
                 Judge (PickingWinner _ _) -> True
                 _ -> False
+                
     
-    playerAt i = gameActivePlayers . at i 
+    playerAt i = gamePlayers . at i 
 
     beingJudgedM :: (MonadState Game m) => m Bool
     beingJudgedM = do 
-        s <- preuse $ gameActivePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
+        s <- preuse $ gamePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
         return $ isJust s 
 
     beingJudged :: Game -> Bool
     beingJudged g = isJust $ 
-        g ^? gameActivePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
+        g ^? gamePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
 
     winner :: Game -> Maybe PlayerId
     winner gs = fst <$> listToMaybe (Map.toList winners)
         where
-            winners = Map.filter isWinner (gs ^. gameActivePlayers)
+            winners = Map.filter isWinner (gs ^. gamePlayers)
             isWinner = (>= gs ^. gameWinScore) . (^. personalStateScore)
 
     judgementPlayer :: Game -> JudgementCase -> Maybe PlayerId
     judgementPlayer gs c = 
-        listToMaybe . Map.keys $ Map.filter isCase (gs ^. gameActivePlayers)
+        listToMaybe . Map.keys $ Map.filter isCase (gs ^. gamePlayers)
         where
             caseFor :: PersonalState -> Maybe JudgementCase
             caseFor ps = ps ^? personalStateStatus . _Selector . _WaitingJudgement 
@@ -114,7 +115,7 @@ module Game.FillBlanks.ServerState where
         return ()
         
     activeJudgementsL
-        = gameActivePlayers . traverse . personalStateStatus .
+        = gamePlayers . traverse . personalStateStatus .
           _Selector . _WaitingJudgement 
 
     activeJudgements g =
@@ -123,11 +124,11 @@ module Game.FillBlanks.ServerState where
     judgeable :: Game -> Bool
     judgeable g = all canBeJudged cases 
         where
-            cases = g ^.. gameActivePlayers . traverse 
+            cases = g ^.. gamePlayers . traverse 
 
     judgeOf :: Game -> Maybe PlayerId
     judgeOf g =
-          (g ^. gameActivePlayers & Map.keys)
+          (g ^. gamePlayers & Map.keys)
         & filter (judgedBy g)
         & listToMaybe
             
@@ -154,15 +155,15 @@ module Game.FillBlanks.ServerState where
     nextTurn = do
         returnCardsToDeck
         call <- moveJudgeStatus
-        players <- use gameActivePlayers
+        players <- use gamePlayers
         mapM_ (dealNonJudge (call & callArity)) $ Map.keys players
 
     returnCardsToDeck :: MonadState Game m => m ()
     returnCardsToDeck = do
-        resps <- gameActivePlayers . traverse %%= (runState removeJudgementCalls)
+        resps <- gamePlayers . traverse %%= (runState removeJudgementCalls)
         gameCurrentDeck . cardDeckResponses %= (<> resps)
         s <- get
-        let call = s ^.. gameActivePlayers . traverse . 
+        let call = s ^.. gamePlayers . traverse . 
                 personalStateStatus . _Judge . _PickingWinner . _1
         gameCurrentDeck . cardDeckCalls %= (<> call) 
         return ()
@@ -179,7 +180,7 @@ module Game.FillBlanks.ServerState where
     moveJudgeStatus = do 
         call <- extractCall
         nj <- nextJudge <$> get 
-        p <-  use gameActivePlayers
+        p <-  use gamePlayers
         mapM_ (liftM2 unless (nj ==) setToSelecting) $ Map.keys p
         changeStatus nj (Judge $ WaitingCases call)
         return call 
@@ -200,7 +201,7 @@ module Game.FillBlanks.ServerState where
     nextJudge :: Game -> PlayerId 
     nextJudge g = 
         maybe 
-            (g ^. gameActivePlayers & Map.keys & head)
+            (g ^. gamePlayers & Map.keys & head)
             (judgeAfter g)
             $ judgeOf g 
     -- TODO: Skip "Sitting out" players
@@ -208,7 +209,7 @@ module Game.FillBlanks.ServerState where
     judgeAfter :: Game -> PlayerId -> PlayerId
     judgeAfter g i = head (afterCandidate <> keys)
         where
-            keys = g ^. gameActivePlayers & Map.keys
+            keys = g ^. gamePlayers & Map.keys
             afterCandidate =
                 keys
                 & dropWhile (<= i)
@@ -226,20 +227,20 @@ module Game.FillBlanks.ServerState where
             l = gameCurrentDeck . cardDeckCalls
     
     playerScores :: Game -> Map.Map PlayerId Int
-    playerScores g = g ^. gameActivePlayers & (Map.map (^. personalStateScore))
+    playerScores g = g ^. gamePlayers & (Map.map (^. personalStateScore))
 
     judgementCases :: Game -> [JudgementCase]
     judgementCases g = 
-        g ^.. gameActivePlayers . traverse . personalStateStatus . _Selector . _WaitingJudgement 
+        g ^.. gamePlayers . traverse . personalStateStatus . _Selector . _WaitingJudgement 
 
     toPublicGame :: Game -> PublicGame
     toPublicGame g =
-        PublicGame (Map.map personalToImpersonal (g ^. gameActivePlayers))
+        PublicGame (Map.map personalToImpersonal (g ^. gamePlayers))
 
     startJudgement g
         = g & judgeLens .~ PickingWinner call (activeJudgements g)
         where
-            judgeLens = gameActivePlayers . traverse . personalStateStatus . _Judge
+            judgeLens = gamePlayers . traverse . personalStateStatus . _Judge
             -- TODO: Make safer please
             call = g ^?! judgeLens . _WaitingCases
 
@@ -248,4 +249,4 @@ module Game.FillBlanks.ServerState where
         = g ^? judgeLens . _WaitingCases
             <|> g ^? judgeLens . _PickingWinner . _1 
         where
-            judgeLens = gameActivePlayers . traverse . personalStateStatus . _Judge 
+            judgeLens = gamePlayers . traverse . personalStateStatus . _Judge 

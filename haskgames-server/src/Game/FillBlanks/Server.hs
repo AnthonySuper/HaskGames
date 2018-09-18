@@ -93,7 +93,7 @@ module Game.FillBlanks.Server where
     sendUpdate :: (MonadSender ServerEvent m, MonadLog m)
                => Game -> PlayerId -> m ()
     sendUpdate g id = do
-        let ap = traceShowId $ g ^. gameActivePlayers
+        let ap = traceShowId $ g ^. gamePlayers
         let ps = traceShowId $ Map.lookup id ap
         logJSON ("Got personalState" :: T.Text, ps)
         let evt = UpdateState (toPublicGame g) <$> ps
@@ -101,7 +101,7 @@ module Game.FillBlanks.Server where
 
     sendUpdates g = do
         logMessage "Sending updates"
-        let keys = traceShowId (g ^. gameActivePlayers & Map.keys)
+        let keys = traceShowId (g ^. gamePlayers & Map.keys)
         mapM_ (sendUpdate g) keys 
         logMessage "Sent updates"
         return g

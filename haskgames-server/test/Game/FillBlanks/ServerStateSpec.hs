@@ -26,7 +26,7 @@ module Game.FillBlanks.ServerStateSpec where
 
     handCardsLength i g = maybe 0 length mhand 
         where
-            mhand = g ^? gameActivePlayers . at i . _Just . personalStateHand 
+            mhand = g ^? gamePlayers . at i . _Just . personalStateHand 
 
     defaultGame = Game 10 deck deck mempty
 
@@ -42,11 +42,11 @@ module Game.FillBlanks.ServerStateSpec where
             let is = increaseScore game'
             it "works if there is a player" $ do
                 let game = is "2"
-                game ^? gameActivePlayers . at "2" . _Just . personalStateScore
+                game ^? gamePlayers . at "2" . _Just . personalStateScore
                     `shouldBe` Just 1 
             it "does nothing if there is not a player" $ do
                 let game = is "5"
-                game ^? gameActivePlayers . at "5" . _Just . personalStateScore
+                game ^? gamePlayers . at "5" . _Just . personalStateScore
                     `shouldBe` Nothing
 
     nextTurnScenario = do
