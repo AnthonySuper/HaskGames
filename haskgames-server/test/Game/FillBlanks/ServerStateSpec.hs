@@ -18,7 +18,7 @@ module Game.FillBlanks.ServerStateSpec where
     import Data.Maybe (maybe)
 
     deck' = CardDeck [CallCard ["Test? ", "."] FillIn] [ResponseCard "Test" FillIn]
-    deck = mconcat . take 20 . repeat $ deck'
+    deck = mconcat . take 30 . repeat $ deck'
     testCase a = JudgementCase [ResponseCard "Test" FillIn] a
 
     numResponses g =
@@ -72,11 +72,10 @@ module Game.FillBlanks.ServerStateSpec where
             let gameAfter = execState returnCardsToDeck game 
             it "should return all used responses to the deck" $ do
                 let responseLength g = g ^. gameCurrentDeck . cardDeckResponses & length
-                -- Each player is dealt 6 cards, but uses 1, so 20 - (2*5) = 10
-                responseLength gameAfter `shouldBe` 10
+                responseLength gameAfter `shouldBe` 14
             it "should return all calls to the deck" $ 
                 (gameAfter ^. gameCurrentDeck . cardDeckCalls & length)
-                    `shouldBe` 20
+                    `shouldBe` 30
         describe "dealCards" $ do
             let (c, g) = runState (dealCards 6) game 
             it "should reduce the number of responses" $ 

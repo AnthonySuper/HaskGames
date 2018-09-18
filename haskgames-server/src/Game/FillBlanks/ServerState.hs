@@ -47,11 +47,6 @@ module Game.FillBlanks.ServerState where
     
     playerAt i = gameActivePlayers . at i 
 
-    judgementsMap :: Game -> Map.Map PlayerId JudgementCase
-    judgementsMap g =
-        g   ^. gameActivePlayers
-            & Map.mapMaybe (^? personalStateStatus . _Selector . _WaitingJudgement)
-
     beingJudged :: Game -> Bool
     beingJudged g = isJust $ 
         g ^? gameActivePlayers . traverse . personalStateStatus . _Judge . _PickingWinner
@@ -60,7 +55,7 @@ module Game.FillBlanks.ServerState where
     winner gs = fst <$> listToMaybe (Map.toList winners)
         where
             winners = Map.filter isWinner (gs ^. gameActivePlayers)
-            isWinner ps = (ps ^. personalStateScore) >= (gs ^. gameWinScore)
+            isWinner = (>= gs ^. gameWinScore) . (^. personalStateScore)
 
     judgementPlayer :: Game -> JudgementCase -> Maybe PlayerId
     judgementPlayer gs c = 
@@ -73,7 +68,7 @@ module Game.FillBlanks.ServerState where
 
     increaseScore :: Game -> PlayerId -> Game
     increaseScore gs i =
-        gs & gameActivePlayers . at i . _Just . personalStateScore %~ (+1)
+        gs & playerAt i . _Just . personalStateScore %~ (+1)
 
     -- | Increase the score of the player with the given Judgement case
     -- If that player no longer exists, or the judgment case is invalid, returns
@@ -82,7 +77,7 @@ module Game.FillBlanks.ServerState where
 
     addJudgement :: Game -> PlayerId -> JudgementCase -> Game
     addJudgement c p j = 
-        c & gameActivePlayers . at p . _Just . personalStateStatus .~ status
+        c & playerAt p . _Just . personalStateStatus .~ status
         where
             status = Selector $ WaitingJudgement j 
 
@@ -94,12 +89,12 @@ module Game.FillBlanks.ServerState where
             Nothing -> do
                 call <- extractCall
                 let p = PersonalState [] (Judge $ WaitingCases call) 0
-                gameActivePlayers . at pid .= Just p
+                playerAt pid .= Just p
                 dealCardsTo 6 pid 
                 return ()
             Just _ -> do
                 let p = PersonalState [] (Selector SelectingCards) 0
-                gameActivePlayers . at pid .= Just p
+                playerAt pid .= Just p
                 dealCardsTo 6 pid
                 return ()
 
@@ -110,7 +105,7 @@ module Game.FillBlanks.ServerState where
         if s `judgedBy` pid then do
             moveJudgeStatus >> return ()
         else return ()
-        gameActivePlayers . at pid . _Just . personalStateStatus .= SittingOut
+        playerAt pid . _Just . personalStateStatus .= SittingOut
         return ()
         
     activeJudgementsL
@@ -133,18 +128,18 @@ module Game.FillBlanks.ServerState where
             
     judgedBy :: Game -> PlayerId -> Bool
     judgedBy c p = isJust $
-            c ^? gameActivePlayers . at p . _Just . personalStateStatus . _Judge
+            c ^? playerAt p . _Just . personalStateStatus . _Judge
 
     hasSubmissionFrom :: Game -> PlayerId -> Bool
     hasSubmissionFrom s p = isJust $
-        s ^? gameActivePlayers . at p . _Just . personalStateStatus . _Selector . _WaitingJudgement
+        s ^? playerAt p . _Just . personalStateStatus . _Selector . _WaitingJudgement
     
     changeStatus :: MonadState Game m
                  => PlayerId 
                  -> PlayerStatus JudgementCase 
                  -> m ()
     changeStatus id s =
-        gameActivePlayers . at id . _Just . personalStateStatus .= s 
+        playerAt id . _Just . personalStateStatus .= s 
 
     -- TODO: Make this function put the cards at the bottom of the deck
     setToSelecting :: MonadState Game m => PlayerId -> m ()
@@ -193,7 +188,7 @@ module Game.FillBlanks.ServerState where
     dealCardsTo :: MonadState Game m => Int -> PlayerId -> m ()
     dealCardsTo count id = do
         cards <- dealCards count 
-        gameActivePlayers . at id . _Just . personalStateHand %= (<> cards)
+        playerAt id . _Just . personalStateHand %= (<> cards)
         return ()
 
     -- TODO: Fix 

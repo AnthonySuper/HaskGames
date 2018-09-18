@@ -126,7 +126,7 @@ module Game.FillBlanks.Game where
     
     personalToImpersonal :: PersonalState -> ImpersonalState
     personalToImpersonal p 
-        = ImpersonalState 
+        = ImpersonalState
             (updateStatus $ p ^. personalStateStatus)
             (p ^. personalStateScore)
         where
