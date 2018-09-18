@@ -4,7 +4,8 @@
            , OverloadedStrings
            , FlexibleContexts
            , MultiParamTypeClasses
-           , NoMonomorphismRestriction #-}
+           , NoMonomorphismRestriction
+           , ConstraintKinds #-}
 
 module Game.FillBlanks.Server where
 
@@ -24,84 +25,93 @@ module Game.FillBlanks.Server where
     import Control.Monad (foldM, join)
     import qualified Game.Backend.Common as GBC
     import Control.Monad.State.Strict
-    import Debug.Trace 
 
-    serve :: MonadGame ServerEvent ClientEvent GameInfo m
-          => Game -> m ()
-    serve s = recvEvent >>= logId >>= go
+    type GSMonad m
+        = ( MonadGame ServerEvent ClientEvent GameInfo m
+          , MonadState Game m 
+          )
+
+    ifM :: (Monad m) => m Bool -> m a -> m a -> m a
+    ifM p t f = p >>= (\p' -> if p' then t else f)
+
+
+    serve :: (GSMonad m)
+          => m ()
+    serve = forever (recvEvent >>= logId >>= go >> sendUpdates)
         where
-            go (GameEvent pid evt) = do
-                logJSON (pid, evt)
-                serveEvent s pid evt >>= sendUpdates >>= serve
-            go (PlayerConnected pid) = connectPlayer pid s >>= serve
-            go (PlayerDisconnected pid) = disconnectPlayer pid s >>= serve
+            go (GameEvent pid evt) = serveEvent pid evt
+            go (PlayerConnected pid) = connectPlayer pid >> serve
+            go (PlayerDisconnected pid) = disconnectPlayer pid >> serve
 
-    serveEvent current pid evt
-        =   if beingJudged current then 
-                serveJudgementEvt current pid evt
-            else
-                serveAwaitEvt current pid evt
-   
-    connectPlayer pid s = do
-        let (_, ns) = runState (addPlayer pid) s 
+    serveEvent :: (GSMonad m)
+               => PlayerId -> ClientEvent -> m ()
+    serveEvent pid evt = 
+            ifM beingJudgedM 
+                (serveJudgementEvt pid evt)
+                (serveAwaitEvt pid evt)
+
+    
+    connectPlayer :: (GSMonad m)
+                  => PlayerId -> m () 
+    connectPlayer pid = do
+        addPlayer pid
+        ns <- get 
         modifyPublic (gameInfoScores .~ (playerScores ns))
-        sendUpdates ns
 
-    disconnectPlayer pid s = do
-        let (_, ns) = runState (sitOutPlayer pid) s
-        sendUpdates ns
+    disconnectPlayer :: (GSMonad m)
+                     => PlayerId -> m ()
+    disconnectPlayer pid = do
+        sitOutPlayer pid
 
-    sendError p msg s = 
-        (sendPlayer p $ InvalidSend msg) >> logJSON (errLabel, p, msg) >> return s
+    sendError :: (GSMonad m)
+              => PlayerId -> T.Text -> m ()
+    sendError p msg = 
+        (sendPlayer p $ InvalidSend msg) >> logJSON (errLabel, p, msg)
         where
             errLabel :: T.Text
             errLabel = "Error:"
-
-    serveJudgementEvt c p e
-        | c `judgedBy` p = case e of
-            SelectWinner w -> case increaseScoreJudgement c w of
-                Just c' -> do
-                    logJSON ("Awarded round win" :: T.Text, w)
-                    logShow c' 
-                    startRound c'
-                Nothing -> sendError p "Judgement did not exist" c
-            _ -> sendError p "You must select a winner" c
-        | otherwise = sendError p "You must select a winner" c
-        
-    startRound g = do
-        let (nc, ng') = runState nextTurn g
-        return ng'
     
-    dealCardsU i g pid = let (nc, ng) = runState (dealCardsTo i pid) g in ng
-
-    serveAwaitEvt c p = go
+    serveJudgementEvt :: (GSMonad m)
+                      => PlayerId -> ClientEvent -> m ()
+    serveJudgementEvt p e =
+        ifM (judgedByM p) (getWinner e) sendError'
         where
-            go (SubmitJudgement j) = addSubmission c p j
-            go _ = sendError p "You must select a winner" c
+            getWinner (SelectWinner w)
+                = ifM (increaseScoreJudgementM w) startRound sendError'
+            getWinner _ = sendError'
+            sendError' = sendError p "Invalid event"
+        
+    startRound = nextTurn 
+
+
+    serveAwaitEvt p = go
+        where
+            go (SubmitJudgement j) = addSubmission p j
+            go _ = sendError p "You must select a winner"
     
-    addSubmission s p j
-        | s `judgedBy` p = do
-            sendError p "Judges cannot submit responses" s
-        | s `hasSubmissionFrom` p = do
-            sendError p "You've already submitted" s
-        | otherwise = do
-            let updated = addJudgement s p j
-            if judgeable updated then do
-                return $ startJudgement updated
-            else return updated 
+    addSubmission :: (GSMonad m)
+                  => PlayerId -> JudgementCase -> m ()
+    addSubmission p j =
+        ifM (judgedByM p) (sendError p "Judges cannot submit")
+            $ ifM (hasSubmissionM p) 
+                (sendError p "Already submitted")
+                (addSubmission')
+        where
+            addSubmission' = do
+                addJudgementM p j
+                s <- judgeableM
+                when s startJudgementM
              
     sendUpdate :: (MonadSender ServerEvent m, MonadLog m)
                => Game -> PlayerId -> m ()
     sendUpdate g id = do
-        let ap = traceShowId $ g ^. gamePlayers
-        let ps = traceShowId $ Map.lookup id ap
-        logJSON ("Got personalState" :: T.Text, ps)
+        let ap = g ^. gamePlayers
+        let ps = Map.lookup id ap
         let evt = UpdateState (toPublicGame g) <$> ps
         sendPlayerMaybe id evt
 
-    sendUpdates g = do
-        logMessage "Sending updates"
-        let keys = traceShowId (g ^. gamePlayers & Map.keys)
-        mapM_ (sendUpdate g) keys 
-        logMessage "Sent updates"
-        return g
+    sendUpdates :: (GSMonad m) => m ()
+    sendUpdates = do
+        g <- get 
+        keys <- use gamePlayers <&> Map.keys
+        mapM_ (sendUpdate g) keys

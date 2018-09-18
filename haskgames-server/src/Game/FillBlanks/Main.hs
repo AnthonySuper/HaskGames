@@ -27,6 +27,7 @@ module Game.FillBlanks.Main where
     import System.IO.Unsafe (unsafePerformIO)
     import Control.Monad.Reader
     import Game.FillBlanks.Coordinator
+    import Control.Monad.State.Strict 
 
     receiveJson :: (FromJSON a) => Connection -> IO (Maybe a)
     receiveJson c = decode <$> receiveData c
@@ -35,8 +36,10 @@ module Game.FillBlanks.Main where
     sendJson c m = sendTextData c (encode m)
 
     runGameBackend :: Game -> Backend' -> IO ()
-    runGameBackend game backend = bracket_ printStart printEnd $ runReaderT (serve game) backend
+    runGameBackend game backend = bracket_ printStart printEnd $ run
         where
+            run =
+                runReaderT (evalStateT serve game) backend
             printStart = do
                 s <- myThreadId
                 print $ concat ["Using thread ", show s, " to run a game"]

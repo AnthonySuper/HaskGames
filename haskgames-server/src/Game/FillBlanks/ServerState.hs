@@ -82,6 +82,21 @@ module Game.FillBlanks.ServerState where
     -- @Nothing@. This may be made more explicit in the future. 
     increaseScoreJudgement gs j = increaseScore gs <$> judgementPlayer gs j
 
+    increaseScoreJudgementM :: (MonadState Game m)
+                            => JudgementCase -> m Bool
+    increaseScoreJudgementM jc = do
+        g <- get
+        let ng = increaseScoreJudgement g jc
+        case ng of
+            Just ng' -> do
+                put ng'
+                return True
+            Nothing -> return False 
+
+    addJudgementM pid jc = do 
+        g <- get
+        put $ addJudgement g pid jc 
+
     addJudgement :: Game -> PlayerId -> JudgementCase -> Game
     addJudgement c p j = 
         c & playerAt p . _Just . personalStateStatus .~ status
@@ -122,6 +137,8 @@ module Game.FillBlanks.ServerState where
     activeJudgements g =
         g ^.. activeJudgementsL
 
+    judgeableM = judgeable <$> get 
+
     judgeable :: Game -> Bool
     judgeable g = all canBeJudged cases 
         where
@@ -133,9 +150,15 @@ module Game.FillBlanks.ServerState where
         & filter (judgedBy g)
         & listToMaybe
             
+    judgedByM :: (MonadState Game m) => PlayerId -> m Bool 
+    judgedByM = gets . flip judgedBy
+
     judgedBy :: Game -> PlayerId -> Bool
     judgedBy c p = isJust $
             c ^? playerAt p . _Just . personalStateStatus . _Judge
+
+    hasSubmissionM :: (MonadState Game m) => PlayerId -> m Bool
+    hasSubmissionM p = flip hasSubmissionFrom p <$> get
 
     hasSubmissionFrom :: Game -> PlayerId -> Bool
     hasSubmissionFrom s p = isJust $
@@ -237,6 +260,14 @@ module Game.FillBlanks.ServerState where
     toPublicGame :: Game -> PublicGame
     toPublicGame g =
         PublicGame (Map.map personalToImpersonal (g ^. gamePlayers))
+
+    startJudgementM = do
+        let judgeLens = traverseStatuses . _Judge
+        ag <- activeJudgements <$> get 
+        call <- preuse $ judgeLens . _WaitingCases 
+        case call of
+            Just call' -> judgeLens .= PickingWinner call' ag
+            Nothing -> return () 
 
     startJudgement g
         = g & judgeLens .~ PickingWinner call (activeJudgements g)
