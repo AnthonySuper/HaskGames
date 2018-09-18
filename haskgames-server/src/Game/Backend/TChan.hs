@@ -42,12 +42,14 @@ module Game.Backend.TChan where
 
     makeLenses ''Backend
 
-
     instance GameBackend (Backend s r t) s r where
         getBackendBroadcast backend =
             atomically $ readTChan $ backend ^. backendBroadcast
         putBackendMessage backend m = 
-            atomically $ writeTChan (backend ^. backendRecv) m 
+            atomically $ writeTChan (backend ^. backendRecv) m
+        prepareBackend backend = atomically $ do
+            bs <- dupTChan $ backend ^. backendBroadcast
+            return $ backend & backendBroadcast .~ bs 
 
     newtype ChannelBackendT s r t m a = 
         ChannelBackendT { getChannelBackendT :: ReaderT (Backend s r t) m a }

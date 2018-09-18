@@ -9,11 +9,15 @@
            , FunctionalDependencies #-}
 module Game.Backend.Common where
 
+    import Control.Exception
     import Game.Common
+    import Game.Basic
     import Control.Lens
     import Data.Aeson
     import qualified Data.Text as T
     import qualified Data.ByteString.Lazy as BS
+    import Control.Monad (when, forever)
+    import Control.Concurrent (forkIO)
 
     data SendMessage a 
         = BroadcastMessage a
@@ -39,5 +43,32 @@ module Game.Backend.Common where
     class GameBackend b s r | b -> s, b -> r where
         getBackendBroadcast :: b -> IO (SendMessage s)
         putBackendMessage :: b -> RecvMessage r -> IO ()
-        --
+        -- Prepare a backend for use, if needed
+        prepareBackend :: b -> IO b 
+        prepareBackend = return 
     
+    joinGame :: (GameBackend b s r, PlayerMessenger m, ToJSON s, FromJSON r)
+             => b -> m -> PlayerId -> IO () 
+    joinGame backend messenger id = do
+        backend' <- prepareBackend backend
+        forkIO $ readLoop backend' messenger id 
+        putBackendMessage backend' $ PlayerConnected id
+        writeLoop backend' messenger id
+
+    writeLoop backend messenger pid = forever $ do
+        e <- recvJSONMessage messenger
+        case e of
+            Just e' -> putBackendMessage backend $ GameEvent pid e'
+            Nothing -> return ()
+    
+    readLoop backend messenger pid 
+        = flip finally disconnect $ forever $ readLoop'
+        where
+            disconnect = putBackendMessage backend $ PlayerDisconnected pid 
+            sendMessage = sendJSONMessage messenger
+            readLoop' = do 
+                res <- getBackendBroadcast backend 
+                case res of 
+                    BroadcastMessage m -> sendMessage m
+                    DirectedMessage i m -> when (i == pid) $ sendMessage m
+
