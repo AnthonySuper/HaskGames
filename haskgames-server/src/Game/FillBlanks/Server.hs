@@ -34,14 +34,18 @@ module Game.FillBlanks.Server where
     ifM :: (Monad m) => m Bool -> m a -> m a -> m a
     ifM p t f = p >>= (\p' -> if p' then t else f)
 
-
     serve :: (GSMonad m)
           => m ()
-    serve = forever (recvEvent >>= logId >>= go >> sendUpdates)
+    serve = do
+        e <- recvEvent
+        logJSON e
+        go e
+        sendUpdates
+        serve
         where
             go (GameEvent pid evt) = serveEvent pid evt
-            go (PlayerConnected pid) = connectPlayer pid >> serve
-            go (PlayerDisconnected pid) = disconnectPlayer pid >> serve
+            go (PlayerConnected pid) = connectPlayer pid
+            go (PlayerDisconnected pid) = disconnectPlayer pid
 
     serveEvent :: (GSMonad m)
                => PlayerId -> ClientEvent -> m ()

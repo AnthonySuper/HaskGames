@@ -6,6 +6,7 @@ module Game.FillBlanks.Main where
     import qualified Data.Text as T
     import Control.Lens
     import Data.Aeson
+    import Game.Backend.Common
     import qualified Data.Map as Map
     import Control.Concurrent.STM
     import Control.Concurrent.STM.TVar
@@ -27,7 +28,7 @@ module Game.FillBlanks.Main where
     import System.IO.Unsafe (unsafePerformIO)
     import Control.Monad.Reader
     import Game.FillBlanks.Coordinator
-    import Control.Monad.State.Strict 
+    import Control.Monad.State.Strict
 
     receiveJson :: (FromJSON a) => Connection -> IO (Maybe a)
     receiveJson c = decode <$> receiveData c
@@ -39,7 +40,7 @@ module Game.FillBlanks.Main where
     runGameBackend game backend = bracket_ printStart printEnd $ run
         where
             run =
-                runReaderT (evalStateT serve game) backend
+                evalStateT (runChannelBackendT serve backend) game
             printStart = do
                 s <- myThreadId
                 print $ concat ["Using thread ", show s, " to run a game"]
@@ -67,6 +68,7 @@ module Game.FillBlanks.Main where
     disconnectMsg pid e = print $ concat msg 
         where
             msg = [show pid, " disconnected due to ", show e]
+            
     gameWrite :: Connection -> T.Text -> TChan (RecvMessage ClientEvent) -> IO ()
     gameWrite conn id chan = catch (msg >> l) disconnect
         where
@@ -87,9 +89,9 @@ module Game.FillBlanks.Main where
                 
     joinGame backend conn id = do
         broadcast <- atomically $ dupTChan $ backend ^. backendBroadcast
-        send <- atomically $ dupTChan $ backend ^. backendRecv
-        atomically $ writeTChan send $ PlayerConnected id 
+        let send = backend ^. backendRecv 
         forkIO $ gameRead conn id broadcast
+        atomically $ writeTChan send $ PlayerConnected id
         gameWrite conn id send
 
     newPlayer :: Connection -> T.Text -> IO ()

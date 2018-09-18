@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell
            , DeriveGeneric
            , OverloadedStrings
-           , DeriveAnyClass
            , GeneralizedNewtypeDeriving
            , StandaloneDeriving
            , FlexibleInstances
@@ -18,22 +17,21 @@ module Game.Backend.TChan where
     import Data.Aeson
     import Control.Concurrent.STM.TChan
     import Game.Common
-    import Control.Monad.Reader.Class
-    import Control.Monad.IO.Class
+    import Game.Backend.Common
     import Control.Monad.STM
     import Control.Concurrent.STM.TVar
     import qualified Data.ByteString.Lazy.Char8 as BSE
-
-    data SendMessage a 
-        = BroadcastMessage a
-        | DirectedMessage T.Text a
-    
-    deriving instance (Show a) => Show (SendMessage a)
-    deriving instance (Read a) => Read (SendMessage a)
-    deriving instance (Eq a) => Eq (SendMessage a)
-    deriving instance (Ord a) => Ord (SendMessage a)
-    deriving instance (Generic a) => Generic (SendMessage a)
-    deriving instance (Generic a, ToJSON a) => ToJSON (SendMessage a)
+    import Control.Monad.Reader
+    import Control.Monad.Reader.Class
+    import Control.Monad.IO.Class
+    import Control.Monad.State.Class
+    import Control.Monad.Fix
+    import Control.Applicative
+    import Control.Monad.Writer.Class
+    import Control.Monad.Error.Class
+    import Control.Monad.Zip
+    import Control.Monad.Cont.Class
+    import Control.Monad.Random.Class 
 
     data Backend s r t
         = Backend
@@ -44,6 +42,28 @@ module Game.Backend.TChan where
 
     makeLenses ''Backend
 
+    newtype ChannelBackendT s r t m a = 
+        ChannelBackendT { getChannelBackendT :: ReaderT (Backend s r t) m a }
+        deriving (Functor, Applicative, Monad, MonadTrans,
+                  MonadIO)
+
+    runChannelBackendT :: ChannelBackendT s r t m a
+                       -> Backend s r t
+                       -> m a
+    runChannelBackendT = runReaderT . getChannelBackendT
+
+    -- Look at all this boilerplate! Amazing, isn't it?
+    deriving instance (Monad m) => MonadReader (Backend s r t) (ChannelBackendT s r t m)
+    deriving instance (MonadState s m) => MonadState s (ChannelBackendT s' r t m)
+    deriving instance (MonadError e m) => MonadError e (ChannelBackendT s r t m)
+    deriving instance (MonadWriter w m) => MonadWriter w (ChannelBackendT s r t m)
+    deriving instance (MonadFix m) => MonadFix (ChannelBackendT s r t m)
+    deriving instance (Alternative m) => Alternative (ChannelBackendT s r t m)
+    deriving instance (MonadPlus m) => MonadPlus (ChannelBackendT s r t m)
+    deriving instance (MonadZip m) => MonadZip (ChannelBackendT s r t m)
+    deriving instance (MonadCont m) => MonadCont (ChannelBackendT s r t m)
+    deriving instance (MonadRandom m) => MonadRandom (ChannelBackendT s r t m)
+
     newBackend :: STM (Backend s r t)
     newBackend = Backend <$> newBroadcastTChan <*> newTChan <*> (newTVar Nothing)
 
@@ -53,26 +73,26 @@ module Game.Backend.TChan where
     instance (MonadIO m, Monad m) => (MonadLog m) where
         logJSON m = liftIO $ BSE.putStrLn (encode m) 
     
-    instance (MonadReader (Backend s r t) m, MonadIO m, Show s) => MonadBroadcaster s m where
+    instance (Monad m, MonadIO m) => MonadBroadcaster s (ChannelBackendT s r t m) where
         broadcast msg = do
             backend <- ask
             let chan = backend ^. backendBroadcast
-            liftIO $ print ("Trying to broadcast a message", msg)
             liftIO $ atomically $ writeTChan chan (BroadcastMessage msg)
 
-    instance (MonadReader (Backend s r t) m, MonadIO m, Show s) => MonadSender s m where
+    instance (Monad m, MonadIO m) => MonadSender s (ChannelBackendT s r t m) where
         sendPlayer p msg = do
             backend <- ask
             let chan = backend ^. backendBroadcast
             liftIO $ atomically $ writeTChan chan (DirectedMessage p msg)
 
-    instance (MonadReader (Backend s r t) m, MonadIO m) => MonadRecv r m where
+    instance (Monad m, MonadIO m) => MonadRecv r (ChannelBackendT s r t m) where
         recvEvent = do
             backend <- ask
             let chan = backend ^. backendRecv
-            liftIO $ atomically $ readTChan chan
+            liftIO . putStrLn $ "Trying to read from the channel..."
+            liftIO $ ((atomically $ readTChan chan) <* putStrLn "Okay we read nice")
         
-    instance (MonadReader (Backend s r t) m, MonadIO m) => MonadGamePublic t m where
+    instance (Monad m, MonadIO m) => MonadGamePublic t (ChannelBackendT s r t m) where
         tellPublic s = do
             backend <- ask
             liftIO $ atomically $ 
