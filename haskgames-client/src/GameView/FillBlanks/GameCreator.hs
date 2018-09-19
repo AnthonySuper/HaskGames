@@ -9,6 +9,7 @@
 module GameView.FillBlanks.GameCreator where
     import Reflex.Dom
     import Reflex.Helpers
+    import Reflex.InputWrapper
     import Data.Aeson
     import Game.FillBlanks.Game
     import qualified Data.Text as T
@@ -23,16 +24,20 @@ module GameView.FillBlanks.GameCreator where
     gameCreator :: (MonadWidget t m, DomBuilder t m)
                 => m (Event t [BS.ByteString])
     gameCreator = elClass "div" "game-creator" $ mdo
-        nameInput <- elClass "div" "input-container" $ do
-            let labelAts = ("for" =: "game-name")
-            let fieldAts = ("name" =: "game-name")
-            elAttr "label" labelAts $ text "Name"
-            textInput $ def &
-                textInputConfig_attributes .~ pure fieldAts
+        nameInput <- labeledTextInput "Name" "game-name" def
+        maxScore <- labeledTextInput "Max Score" "test" $ def 
+            & textInputConfig_initialValue .~ "10"
+            & textInputConfig_inputType .~ "number"
         decksDyn <- foldDynAp [] decksEvent
         decksEvent <- decksList decksDyn
         btn <- button "Create Game"
-        let creationDyn = GameCreator <$> decksDyn <*> (value nameInput) <*> pure Nothing <*> pure 10
+        let creationDyn = 
+             GameCreator 
+                <$> decksDyn 
+                <*> (value nameInput) 
+                <*> pure Nothing 
+                <*> valueAsDefault 10 maxScore
+
         let createGame = toList . encode . CreateGame <$> creationDyn
         return $ tagCurrent createGame btn
         where

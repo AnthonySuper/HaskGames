@@ -8,6 +8,7 @@
            , AllowAmbiguousTypes #-}
 module GameView.FillBlanks.GamePicker where
     import Reflex.Dom
+    import Reflex.Helpers
     import Data.Monoid
     import Game.FillBlanks.Game
     import Data.Aeson
@@ -37,7 +38,7 @@ module GameView.FillBlanks.GamePicker where
     showGame g = el "div" $ do
         el "h1" $ display $ view gameInfoName <$> g 
         btn <- button "Join Game"
-        return $ tagPromptlyDyn (view gameInfoName <$> g) btn
+        return $ tagCurrent (view gameInfoName <$> g) btn
 
     gameList :: forall t m. (MonadWidget t m)
              => Event t ByteString

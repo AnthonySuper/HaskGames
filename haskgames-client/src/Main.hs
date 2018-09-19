@@ -16,8 +16,16 @@
     import qualified Data.Map as Map
     import qualified Data.ByteString.Lazy as BS
     import GameView.FillBlanks.Main
+    import Data.Text.Encoding (decodeUtf8)
 
-    main = mainWidgetWithCss $(embedFile "static/main.css") $ el "div" $ mdo
+    headWidget :: (MonadWidget t m)
+               => m ()
+    headWidget = do 
+        el "style" $ (text . decodeUtf8) $(embedFile "static/main.css")
+        elAttr "meta" ("charset" =: "UTF-8") $ return ()
+
+
+    main = mainWidgetWithHead headWidget $ el "div" $ mdo
         ws <- webSocket "ws://localhost:9000" $ def &
             webSocketConfig_send .~ leftmost [listEvt]
         listEvt <- fullWorkflow ws
