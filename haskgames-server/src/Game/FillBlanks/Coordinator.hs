@@ -54,7 +54,6 @@ module Game.FillBlanks.Coordinator where
 
     createGame :: GameCreator -> IO (Game, Backend')
     createGame creator = do
-        
         cards <- cardCastsToDeck (creator ^. gameCreatorDecks)
         backend <- atomically $ do
             coordinator <- readTVar cardCoordinator
@@ -65,7 +64,7 @@ module Game.FillBlanks.Coordinator where
             modifyTVar cardCoordinator $
                 coordinationGames %~ Map.insert (creator ^. gameCreatorName) item
             return backend
-        let game = Game 10 cards cards mempty
+        let game = Game (creator ^. gameCreatorMaxScore) cards cards mempty
         return (game, backend)
 
     getInfo :: IO [GameInfo]

@@ -23,21 +23,20 @@ module GameView.FillBlanks.GameCreator where
 
     gameCreator :: (MonadWidget t m, DomBuilder t m)
                 => m (Event t [BS.ByteString])
-    gameCreator = elClass "div" "game-creator" $ mdo
+    gameCreator = elClass "div" "pure-form pure-form-aligned game-creator-form" $ mdo
         nameInput <- labeledTextInput "Name" "game-name" def
         maxScore <- labeledTextInput "Max Score" "test" $ def 
             & textInputConfig_initialValue .~ "10"
             & textInputConfig_inputType .~ "number"
         decksDyn <- foldDynAp [] decksEvent
         decksEvent <- decksList decksDyn
-        btn <- button "Create Game"
+        btn <- pureButtonClass "Create Game" "pure-button-primary"
         let creationDyn = 
              GameCreator 
                 <$> decksDyn 
                 <*> (value nameInput) 
                 <*> pure Nothing 
                 <*> valueAsDefault 10 maxScore
-
         let createGame = toList . encode . CreateGame <$> creationDyn
         return $ tagCurrent createGame btn
         where
@@ -56,7 +55,7 @@ module GameView.FillBlanks.GameCreator where
             elAttr "label" labelAts $ text "CardCast Deck ID"
             ti <- textInput $ def &
                 textInputConfig_attributes .~ pure fieldAts
-            btn <- button "Add Card Cast Deck"
+            btn <- pureButton "Add Card Cast Deck"
             let inputValue = tagValue ti btn 
             return $ toAdd <$> inputValue 
         return $ leftmost [removeEvt, addEvent]

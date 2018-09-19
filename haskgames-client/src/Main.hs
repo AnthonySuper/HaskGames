@@ -21,8 +21,16 @@
     headWidget :: (MonadWidget t m)
                => m ()
     headWidget = do 
+        styleSheet "http://unpkg.com/purecss@1.0.0/build/pure-min.css"
         el "style" $ (text . decodeUtf8) $(embedFile "static/main.css")
         elAttr "meta" ("charset" =: "UTF-8") $ return ()
+        elAttr "meta" 
+            ("name" =: "viewport" 
+            <> "content" =: "width=device-width, initial-scale=1")
+            $ blank 
+        where
+            styleSheet url = 
+                elAttr "link" ("rel" =: "stylesheet" <> "href" =: url) $ blank 
 
 
     main = mainWidgetWithHead headWidget $ el "div" $ mdo

@@ -59,9 +59,9 @@ module Game.FillBlanks.Main where
 
     coordinate :: Connection -> T.Text -> CoordinationMessage -> IO ()
     coordinate c id f = case f of
-        CreateGame decks -> do
-            print "Creating a game..."
-            (g, b) <- createGame decks
+        CreateGame creation -> do
+            print ("Creating a game...", creation)
+            (g, b) <- createGame creation
             print "Game created! Running backend"
             forkIO $ runGameBackend g b
             sendJSONMessage c $ JoinedGame

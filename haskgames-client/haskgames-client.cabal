@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2bc4c2c07f8fb5e6e06249da9cc53e4baef3dc1426a65748426f7f7c3e3839e8
+-- hash: 6370da02a59fe3cee5604fa1748cbfffbfe83b0501585836fd2070e0cf08217b
 
 name:           haskgames-client
 version:        0.1.0.0
@@ -64,6 +64,7 @@ executable haskgames-client
   hs-source-dirs:
       src
       lib
+      static
   build-depends:
       aeson
     , base >=4.7 && <5

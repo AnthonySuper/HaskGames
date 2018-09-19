@@ -10,6 +10,10 @@ body {
     padding: 0;
 }
 
+.game-creator-form {
+    padding: 15px;
+}
+
 .play-container {
     min-height: 100vh;
     padding: 0;

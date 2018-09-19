@@ -14,13 +14,23 @@ module Reflex.InputWrapper where
     import Data.Maybe (maybe)
     import qualified Data.Text as T
     import Text.Read (readMaybe)
+    import Data.Monoid
 
-    labledInput input label name cfg = elClass "div" "input-container" $ do
+    labledInput input label name cfg = elClass "div" "pure-control-group" $ do
         let labelAts = ("for" =: name)
         let fieldAts = ("name" =: name)
         elAttr "label" labelAts $ text label
         input $ cfg &
             attributes %~ (mappend $ pure fieldAts)
+
+    
+    pureButtonClass text' klass = do
+        (el, _) <- elAttr' "a"
+            ("class" =: (T.append "pure-button " klass) <> "href" =: "#")
+            $ text text'
+        return $ domEvent Click el 
+
+    pureButton text' = pureButtonClass text' ""
 
     labeledTextInput = labledInput textInput
 

@@ -33,6 +33,7 @@ executable:
   source-dirs: 
     - src
     - lib
+    - static
   dependencies:
     - hpack
 
