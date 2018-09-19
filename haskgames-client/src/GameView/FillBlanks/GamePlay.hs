@@ -55,10 +55,8 @@ module GameView.FillBlanks.GamePlay where
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
         playersList (view _1 <$> state)
         broadcastE <- elClass "div" "pure-u-1 pure-u-md-4-5" $ do
-            
             je <- judgingArea callCard playerState publicState
             se <- dynHold $ selectingArea <$> callCard <*> playerState
-            
             return $ traceEvent "Sending Broadcast Event" $ leftmost [se, je]
         return broadcastE
         where

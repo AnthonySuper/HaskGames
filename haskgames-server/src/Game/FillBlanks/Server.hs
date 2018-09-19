@@ -43,9 +43,13 @@ module Game.FillBlanks.Server where
         sendUpdates
         serve
         where
+            go (GameEvent pid (SendChat msg)) = routeChat pid msg
             go (GameEvent pid evt) = serveEvent pid evt
             go (PlayerConnected pid) = connectPlayer pid
             go (PlayerDisconnected pid) = disconnectPlayer pid
+
+    routeChat pid msg =
+        broadcast $ ChatMessage pid msg 
 
     serveEvent :: (GSMonad m)
                => PlayerId -> ClientEvent -> m ()
