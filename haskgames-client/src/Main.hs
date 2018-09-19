@@ -21,7 +21,10 @@
     headWidget :: (MonadWidget t m)
                => m ()
     headWidget = do 
-        styleSheet "http://unpkg.com/purecss@1.0.0/build/pure-min.css"
+        styleSheet "http://unpkg.com/purecss@1.0.0/build/base-min.css"
+        styleSheet "http://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css"
+        styleSheet "http://unpkg.com/purecss@1.0.0/build/forms-min.css"
+        styleSheet "http://unpkg.com/purecss@1.0.0/build/buttons-min.css"
         el "style" $ (text . decodeUtf8) $(embedFile "static/main.css")
         elAttr "meta" ("charset" =: "UTF-8") $ return ()
         elAttr "meta" 

@@ -33,7 +33,7 @@ module GameView.FillBlanks.GamePlay where
     gamePlayWidget :: forall t m . (MonadWidget t m)
                    => WebSocket t
                    -> m (Event t [BS.ByteString])
-    gamePlayWidget ws = elClass "div" "play-container" $ do
+    gamePlayWidget ws = elClass "div" "pure-g" $ do
         maybeState <- (gameStateDyn $ ws & _webSocket_recv)
         state <- maybeDyn maybeState
         socketDyn <- dyn $ gamePlayM <$> state
@@ -54,7 +54,8 @@ module GameView.FillBlanks.GamePlay where
         publicState <- holdUniqDyn $ view _1 <$> state 
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
         playersList (view _1 <$> state)
-        broadcastE <- elClass "div" "gameplay-area" $ do
+        broadcastE <- elClass "div" "pure-u-1 pure-u-md-4-5" $ do
+            
             je <- judgingArea callCard playerState publicState
             se <- dynHold $ selectingArea <$> callCard <*> playerState
             

@@ -19,7 +19,7 @@ module GameView.FillBlanks.PlayerDisplay where
                 => Dynamic t PublicGame
                 -> m ()
     playersList s = do
-        elClass "ul" "players-list" $
+        elClass "ul" "pure-u-1 pure-u-md-1-5 players-list" $
             listWithKey (view publicGameActivePlayers <$> s) displayPlayer
         return ()
 
