@@ -78,3 +78,17 @@ li {
     background-color: rgb(178, 214, 174);
     font-weight: 700;
 }
+
+.chat-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    height: 33vh;
+    overflow: scroll;
+}
+
+.chat-user {
+    font-weight: 600px;
+}

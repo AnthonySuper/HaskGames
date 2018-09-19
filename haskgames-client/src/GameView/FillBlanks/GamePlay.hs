@@ -29,16 +29,19 @@ module GameView.FillBlanks.GamePlay where
     import Data.List (delete)
     import GameView.FillBlanks.HandSelector
     import GameView.FillBlanks.PlayerDisplay
+    import GameView.FillBlanks.ChatView
 
     gamePlayWidget :: forall t m . (MonadWidget t m)
                    => WebSocket t
                    -> m (Event t [BS.ByteString])
     gamePlayWidget ws = elClass "div" "pure-g" $ do
-        maybeState <- (gameStateDyn $ ws & _webSocket_recv)
+        let serverEvents = serverEvent $ ws & _webSocket_recv
+        maybeState <- gameStateDyn serverEvents
         state <- maybeDyn maybeState
-        socketDyn <- dyn $ gamePlayM <$> state
-        actEvent <- switchHold never socketDyn
-        return actEvent
+        elClass "div" "pure-u-1 pure-u-md-4-5" $ do
+            socketDyn <- dynHold $ gamePlayM <$> state
+            ce <- chatView serverEvents
+            return $ leftmost [ce, socketDyn]
 
     gamePlayM :: forall t m. (MonadWidget t m)
               => Maybe (Dynamic t (PublicGame, PersonalState))
@@ -54,7 +57,7 @@ module GameView.FillBlanks.GamePlay where
         publicState <- holdUniqDyn $ view _1 <$> state 
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
         playersList (view _1 <$> state)
-        broadcastE <- elClass "div" "pure-u-1 pure-u-md-4-5" $ do
+        broadcastE <- elClass "div" "" $ do
             je <- judgingArea callCard playerState publicState
             se <- dynHold $ selectingArea <$> callCard <*> playerState
             return $ traceEvent "Sending Broadcast Event" $ leftmost [se, je]
@@ -137,15 +140,18 @@ module GameView.FillBlanks.GamePlay where
             callBody' :: [T.Text]
             callBody' = maybe [] (^. callBody) call 
 
+    serverEvent :: forall t. (Reflex t)
+                => Event t ByteString
+                -> Event t ServerEvent
+    serverEvent = fmapMaybe decodeStrict
+
     gameStateDyn :: forall t m. (Reflex t, MonadHold t m, MonadFix m)
-                 => Event t ByteString
+                 => Event t ServerEvent
                  -> m (Dynamic t (Maybe (PublicGame, PersonalState)))
-    gameStateDyn e = foldDyn folder Nothing encoded
+    gameStateDyn e = foldDyn folder Nothing e
         where
             folder (UpdateState pg ps) _ = Just (pg, ps)
             folder _ n = n
-            encoded :: Event t ServerEvent
-            encoded = fmapMaybe decodeStrict e
 
     handSelector :: (MonadWidget t m)
                  => Maybe CallCard

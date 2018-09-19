@@ -10,6 +10,7 @@ module Game.FillBlanks.Event where
     import GHC.Generics
     import Data.Aeson
     import Game.Basic
+    import Control.Lens
 
 
     data ServerEvent
@@ -18,8 +19,12 @@ module Game.FillBlanks.Event where
         | ChatMessage PlayerId T.Text
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 
+    makePrisms ''ServerEvent 
+
     data ClientEvent
         = SubmitJudgement JudgementCase
         | SelectWinner JudgementCase
         | SendChat T.Text 
         deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
+
+    makePrisms ''ClientEvent 
