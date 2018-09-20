@@ -23,7 +23,7 @@ module GameView.FillBlanks.GamePicker where
                      => WebSocket t -> m (Event t [BS.ByteString])
     gamePickerWidget ws = el "div" $ do
         ds <- gameList $ ws & _webSocket_recv
-        joinEvents <- el "ul" $ simpleList ds showGame
+        joinEvents <- elClass "ul" "games-list" $ simpleList ds showGame
         let selectEvent = switchPromptlyDyn (joinEvents <&> leftmost)
         b <- button "Refresh List"
         createGame <- gameCreator 

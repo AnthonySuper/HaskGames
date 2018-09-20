@@ -11,18 +11,20 @@ body {
 }
 
 .game-creator-form {
-    padding: 15px;
+    margin-top: 25px;
+    
+    padding: 25px;
 }
 
 ul {
-    margin: none;
-    padding: none;
+    margin: 0;
+    padding: 0;
 }
 
 li {
     list-style-type: none;
-    margin: none;
-    padding: none;
+    margin: 0;
+    padding: 0;
 }
 
 .play-container {
@@ -30,6 +32,23 @@ li {
     padding: 0;
     margin: 0;
     display: flex;
+}
+
+.decks-form-container {
+    display: flex;
+    margin-bottom: 0.5em;
+}
+
+.decks-label {
+    display: block;
+    width: 10em;
+    margin: 0 1em 0 0;
+    font-size: 12pt;
+    text-align: right;
+}
+
+.decks-list {
+    display: block;
 }
 
 .players-list {

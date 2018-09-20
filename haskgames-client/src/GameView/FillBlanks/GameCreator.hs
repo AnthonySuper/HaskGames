@@ -45,29 +45,31 @@ module GameView.FillBlanks.GameCreator where
     decksList :: (MonadWidget t m)
               => Dynamic t [T.Text]
               ->  m (Event t ([T.Text] -> [T.Text]))
-    decksList decks = elClass "div" "decks-list-container" $ do
-        decksDyn <- elClass "ul" "decks-list" $
-            simpleList decks displayDeck
+    decksList decks = do
+        decksDyn <- elClass "div" "decks-form-container" $ do
+            elClass "span" "decks-label" $ text "Decks"
+            elClass "ul" "pure-form-aligned decks-list" $
+                simpleList decks displayDeck
         let removeEvt = switch (leftmost <$> current decksDyn)
-        addEvent <- elClass "div" "add-container" $ do
+        addEvent <- elClass "div" "pure-control-group" $ do
             let labelAts = ("for" =: "cardcast-id")
             let fieldAts = ("name" =: "cardcast-id")
-            elAttr "label" labelAts $ text "CardCast Deck ID"
+            elAttr "label" labelAts $ text "CardCast ID"
             ti <- textInput $ def &
                 textInputConfig_attributes .~ pure fieldAts
             btn <- pureButton "Add Card Cast Deck"
-            let inputValue = tagValue ti btn 
-            return $ toAdd <$> inputValue 
+            let inputValue = tagValue ti btn
+            return $ toAdd <$> inputValue
         return $ leftmost [removeEvt, addEvent]
-            
         where
             toAdd text deck = deck ++ [text]
         
     displayDeck :: (MonadWidget t m)
                 => Dynamic t T.Text
                 -> m (Event t ([T.Text] -> [T.Text]))
-    displayDeck deck = elClass "li" "decks-list-item" $ do
-        elClass "span" "decks-name" $ dynText deck
+    displayDeck deck = elClass "li" "pure-control-group" $ do
+        let dynLabel = ("for" =:) <$> deck
+        elDynAttr "label" dynLabel $ dynText deck
         b <- button "Remove"
         return $ tag removeBehavior b 
         where
