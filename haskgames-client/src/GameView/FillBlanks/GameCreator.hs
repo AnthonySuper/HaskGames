@@ -5,7 +5,8 @@
            , NoMonomorphismRestriction
            , TemplateHaskell
            , GADTs
-           , AllowAmbiguousTypes #-}
+           , AllowAmbiguousTypes
+           , TypeApplications #-}
 module GameView.FillBlanks.GameCreator where
     import Reflex.Dom
     import Reflex.Helpers
@@ -20,10 +21,20 @@ module GameView.FillBlanks.GameCreator where
     import Data.Monoid ((<>))
     import Data.Functor (($>))
     import Data.List (delete)
+    import Reflex.Contrib.AutoForm
 
-    gameCreator :: (MonadWidget t m, DomBuilder t m)
+    personForm :: (MonadWidget t m)
+               => m (Dynamic t Person)
+    personForm = toFormCfg cfg "" ""
+        where
+            cfg = defaultFormCfg @ Person &
+                formConfigLabelMapper .~ (T.take 7) 
+
+    gameCreator :: forall t m. (MonadWidget t m, DomBuilder t m)
                 => m (Event t [BS.ByteString])
     gameCreator = elClass "div" "pure-form pure-form-aligned game-creator-form" $ mdo
+        f <- personForm
+        dynText $ T.pack . show <$> f 
         nameInput <- labeledTextInput "Name" "game-name" def
         maxScore <- labeledTextInput "Max Score" "test" $ def 
             & textInputConfig_initialValue .~ "10"

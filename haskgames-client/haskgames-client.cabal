@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d6722e612cb881a024e386c8e9f8cad4def2d09fb8ed2c477e510585ccb5c885
+-- hash: 7b009cd0f775269feabbab8202eda489f5b7ed10da47f14717ccafb48bba1a6a
 
 name:           haskgames-client
 version:        0.1.0.0
@@ -31,6 +31,7 @@ library
       GameView.FillBlanks.Main
       GameView.FillBlanks.PlayerDisplay
       Main
+      Reflex.Contrib.AutoForm
       Reflex.Helpers
       Reflex.InputWrapper
   other-modules:
@@ -60,6 +61,7 @@ executable haskgames-client
       GameView.FillBlanks.HandSelector
       GameView.FillBlanks.Main
       GameView.FillBlanks.PlayerDisplay
+      Reflex.Contrib.AutoForm
       Reflex.Helpers
       Reflex.InputWrapper
       Paths_haskgames_client
