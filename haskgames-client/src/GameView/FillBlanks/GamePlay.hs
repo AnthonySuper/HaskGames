@@ -110,7 +110,6 @@ module GameView.FillBlanks.GamePlay where
                 else
                     ""
         
-
     selectingArea :: MonadWidget t m
                   => Maybe CallCard
                   -> PersonalState

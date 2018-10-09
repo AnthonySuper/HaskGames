@@ -37,6 +37,8 @@ module Game.FillBlanks.ServerState where
     import Control.Monad.State.Strict
     import Data.Foldable (concat)
     import Control.Monad (unless)
+    import Control.Monad.Random.Class
+    import System.Random.Shuffle
 
     -- | Game state for a "Fill in the blanks" sort of game
     data Game
@@ -221,7 +223,19 @@ module Game.FillBlanks.ServerState where
     -- | Set a player to be Selecting cards. 
     setToSelecting :: MonadState Game m => PlayerId -> m ()
     setToSelecting i = changeStatus i (Selector SelectingCards)
+
+
+    shuffleDeck :: (MonadRandom m) => CardDeck -> m CardDeck
+    shuffleDeck c =
+        CardDeck <$> (shuffleM $ c ^. cardDeckCalls)
+                 <*> (shuffleM $ c ^. cardDeckResponses) 
     
+    shuffleCards :: (MonadState Game m, MonadRandom m) => m ()
+    shuffleCards = do 
+        s <- use gameCurrentDeck
+        s' <- shuffleDeck s 
+        assign gameCurrentDeck s' 
+
     -- | Move the game to the next turn, in the state monad
     nextTurn :: MonadState Game m => m ()
     nextTurn = do

@@ -29,6 +29,7 @@ dependencies:
 - mtl
 - async
 - websockets
+- random-shuffle
 
 library:
   source-dirs: src

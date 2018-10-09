@@ -12,12 +12,14 @@ module Game.Common where
     import qualified Data.Text as T
     import qualified Data.Map as M
     import Control.Lens hiding ((.=))
+    import Control.Monad.Random.Class
     import Game.Basic
     import Data.Aeson
     import Data.Text.Encoding (decodeUtf8)
     import Data.Aeson.Text (encodeToTextBuilder)
     import Data.Text.Lazy.Builder (toLazyText)
     import Data.Text.Lazy (toStrict)
+    import Control.Monad.Random
 
     -- | The various types of messages a game must respond to.
     -- These messages are common in all games, as all games must react
@@ -134,7 +136,9 @@ module Game.Common where
           , MonadSender s m 
           , MonadLog m 
           , MonadRecv c m 
-          , MonadGamePublic t m)
+          , MonadGamePublic t m
+          , MonadRandom m
+          )
     
     type MonadGameOutput e m 
         = ( MonadBroadcaster e m

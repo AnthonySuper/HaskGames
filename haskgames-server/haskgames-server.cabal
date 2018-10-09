@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1b6c38b787a8f97bd73865be08946a05d1f6203ad7230f3d28e4e740a13cd464
+-- hash: 1aff83a9d68a2eb3390d49385a096d92528709674219de355d43c7e4a6776a7a
 
 name:           haskgames-server
 version:        0.1.0.0
@@ -48,6 +48,7 @@ library
     , haskgames-shared
     , lens
     , mtl
+    , random-shuffle
     , stm
     , text
     , websockets
@@ -82,6 +83,7 @@ executable haskgames-server
     , haskgames-shared
     , lens
     , mtl
+    , random-shuffle
     , stm
     , text
     , websockets
@@ -112,6 +114,7 @@ test-suite haskgames-server-test
     , hspec
     , lens
     , mtl
+    , random-shuffle
     , stm
     , text
     , websockets

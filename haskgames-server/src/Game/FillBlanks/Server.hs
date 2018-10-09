@@ -89,7 +89,8 @@ module Game.FillBlanks.Server where
             getWinner _ = sendError'
             sendError' = sendError p "Invalid event"
         
-    startRound = nextTurn
+    startRound :: (GSMonad m) => m () 
+    startRound = shuffleCards >> nextTurn
 
     serveAwaitEvt p = go
         where
