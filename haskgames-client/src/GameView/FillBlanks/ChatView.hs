@@ -33,8 +33,6 @@ module GameView.FillBlanks.ChatView where
     toChatMessage :: Prism' ServerEvent ChatMsg
     toChatMessage = _ChatMessage . asChat
 
-    toList x = [x]
-
     chatView :: (MonadWidget t m)
              => Event t ServerEvent
              -> m (Event t [BS.ByteString])
@@ -49,7 +47,7 @@ module GameView.FillBlanks.ChatView where
             & textInputConfig_setValue .~ ("" <$ enterPressed)
             & textInputConfig_attributes .~ pure ("name" =: "chat-message")
         let enterPressed = ffilter (== 13) (input ^. textInput_keyup)
-        return $ tagCurrent (toList . encode . SendChat <$> value input) enterPressed
+        return $ tagCurrent (pure . encode . SendChat <$> value input) enterPressed
 
     chatItem k itm = elClass "div" "chat-item" $ do
         elClass "span" "chat-user" $

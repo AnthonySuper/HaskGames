@@ -41,7 +41,7 @@ module GameView.FillBlanks.GamePlay where
         elClass "div" "pure-u-1 pure-u-md-4-5" $ do
             socketDyn <- dynHold $ gamePlayM <$> state
             ce <- chatView serverEvents
-            return $ leftmost [ce, socketDyn]
+            return $ ce <> socketDyn
 
     gamePlayM :: forall t m. (MonadWidget t m)
               => Maybe (Dynamic t (PublicGame, PersonalState))

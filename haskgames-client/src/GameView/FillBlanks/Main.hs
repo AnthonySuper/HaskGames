@@ -17,10 +17,20 @@ module GameView.FillBlanks.Main where
     import GameView.FillBlanks.GamePicker (gamePickerWidget, encodeCoordination)
     import GameView.FillBlanks.GamePlay (gamePlayWidget)
     import Data.Functor (($>), (<$))
+    import GameView.FillBlanks.NamePick (namePickView)
 
     type WsEvent t = Event t [BS.ByteString]
 
     type WsWorkflow t m = Workflow t m (WsEvent t)
+
+    namePickWorkflow :: (MonadWidget t m)
+                     => WebSocket t
+                     -> WsWorkflow t m
+    namePickWorkflow ws = Workflow inner
+        where
+            inner = do
+                evt <- namePickView
+                return (evt, evt $> pickerWorkflow ws)
 
     pickerWorkflow :: forall t m. 
                     ( MonadWidget t m
@@ -39,7 +49,7 @@ module GameView.FillBlanks.Main where
             
     gamePlayWorkflow :: forall t m. (MonadWidget t m, DomBuilder t m, PostBuild t m)
                      => WebSocket t
-                     -> Workflow t m (Event t [BS.ByteString])
+                     -> WsWorkflow t m
     gamePlayWorkflow ws = Workflow . el "div" $ do
         g <- gamePlayWidget ws 
         return (g, never)
@@ -55,5 +65,5 @@ module GameView.FillBlanks.Main where
                  => WebSocket t
                  -> m (Event t [BS.ByteString])
     fullWorkflow ws = do
-        r <- workflow $ pickerWorkflow ws
+        r <- workflow $ namePickWorkflow ws
         return $ switchPromptlyDyn r

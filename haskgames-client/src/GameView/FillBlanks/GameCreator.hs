@@ -37,11 +37,9 @@ module GameView.FillBlanks.GameCreator where
                 <*> (value nameInput) 
                 <*> pure Nothing 
                 <*> valueAsDefault 10 maxScore
-        let createGame = toList . encode . CreateGame <$> creationDyn
+        let createGame = pure . encode . CreateGame <$> creationDyn
         return $ tagCurrent createGame btn
-        where
-            toList a = [a]
-
+        
     decksList :: (MonadWidget t m)
               => Dynamic t [T.Text]
               ->  m (Event t ([T.Text] -> [T.Text]))

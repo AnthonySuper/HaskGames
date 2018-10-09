@@ -88,12 +88,21 @@ module Game.FillBlanks.Main where
     addAndReturn s = do
         r <- readTVar s
         modifyTVar s (+1)
-        return r 
+        return r
+
+    getName conn = do
+        c <- recvJSONMessage conn
+        case c of
+            Just c' -> do
+                let n = (getMsgName c')
+                print ("Player connected named", n)
+                return n  
+            Nothing -> getName conn
 
     serverApp :: PendingConnection -> IO ()
     serverApp pc = do
         conn <- acceptRequest pc 
         forkPingThread conn 30
-        id <- atomically $ addAndReturn backendCounter
+        id <- getName conn
         print "Found a new player, asking for commands..."
-        newPlayer conn (T.pack $ show id)
+        newPlayer conn id
