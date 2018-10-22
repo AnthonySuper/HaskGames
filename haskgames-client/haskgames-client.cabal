@@ -76,7 +76,6 @@ executable haskgames-client
     , containers
     , file-embed
     , haskgames-shared
-    , hpack
     , lens
     , reflex
     , reflex-dom
