@@ -21,9 +21,10 @@ module GameView.FillBlanks.GamePicker where
 
     gamePickerWidget :: (MonadWidget t m)
                      => WebSocket t -> m (Event t [BS.ByteString])
-    gamePickerWidget ws = el "div" $ do
+    gamePickerWidget ws = el "article" $ do
         ds <- gameList $ ws & _webSocket_recv
-        joinEvents <- elClass "ul" "games-list" $ simpleList ds showGame
+        joinEvents <- elClass "section" "section" $
+            elClass "ul" "tile is-ancestor" $ simpleList ds showGame
         let selectEvent = switchPromptlyDyn (joinEvents <&> leftmost)
         b <- button "Refresh List"
         createGame <- gameCreator 
@@ -35,7 +36,7 @@ module GameView.FillBlanks.GamePicker where
 
     showGame :: (MonadWidget t m)
              => Dynamic t GameInfo -> m (Event t T.Text)
-    showGame g = el "div" $ do
+    showGame g = elClass "li" "tile" $ do
         el "h1" $ display $ view gameInfoName <$> g 
         btn <- button "Join Game"
         return $ tagCurrent (view gameInfoName <$> g) btn

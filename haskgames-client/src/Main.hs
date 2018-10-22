@@ -21,10 +21,7 @@
     headWidget :: (MonadWidget t m)
                => m ()
     headWidget = do 
-        styleSheet "http://unpkg.com/purecss@1.0.0/build/base-min.css"
-        styleSheet "http://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css"
-        styleSheet "http://unpkg.com/purecss@1.0.0/build/forms-min.css"
-        styleSheet "http://unpkg.com/purecss@1.0.0/build/buttons-min.css"
+        styleSheet "http://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.css"
         el "style" $ (text . decodeUtf8) $(embedFile "static/main.css")
         elAttr "meta" ("charset" =: "UTF-8") $ return ()
         elAttr "meta" 
@@ -38,6 +35,6 @@
 
     main = mainWidgetWithHead headWidget $ el "div" $ mdo
         ws <- webSocket "ws://localhost:9000" $ def &
-            webSocketConfig_send .~ leftmost [listEvt]
+            webSocketConfig_send .~ (traceEvent "Got WS Event" listEvt)
         listEvt <- fullWorkflow ws
         return ()

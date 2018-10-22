@@ -16,17 +16,17 @@ module Reflex.InputWrapper where
     import Text.Read (readMaybe)
     import Data.Monoid
 
-    labledInput input label name cfg = elClass "div" "pure-control-group" $ do
-        let labelAts = ("for" =: name)
-        let fieldAts = ("name" =: name)
+    labledInput input label name cfg = elClass "div" "field" $ do
+        let labelAts = ("for" =: name <> "class" =: "label")
+        let fieldAts = ("name" =: name <> "class" =: "input")
         elAttr "label" labelAts $ text label
-        input $ cfg &
+        elClass "div" "control" $ input $ cfg &
             attributes %~ (mappend $ pure fieldAts)
 
     
     pureButtonClass text' klass = do
-        (el, _) <- elAttr' "a"
-            ("class" =: (T.append "pure-button " klass) <> "href" =: "#")
+        (el, _) <- elClass "div" "control" $ elAttr' "a"
+            ("class" =: (T.append "button is-primary  " klass) <> "href" =: "#")
             $ text text'
         return $ domEvent Click el 
 

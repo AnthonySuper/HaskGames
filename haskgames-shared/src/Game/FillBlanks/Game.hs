@@ -9,7 +9,6 @@ module Game.FillBlanks.Game where
     import Game.FillBlanks.Deck
     import Data.Maybe
     import Game.Basic
-    import Control.Monad (join)
 
     data GameStatus
         = AwaitingSubmissions

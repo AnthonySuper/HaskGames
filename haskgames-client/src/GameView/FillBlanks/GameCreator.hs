@@ -23,7 +23,7 @@ module GameView.FillBlanks.GameCreator where
 
     gameCreator :: (MonadWidget t m, DomBuilder t m)
                 => m (Event t [BS.ByteString])
-    gameCreator = elClass "div" "pure-form pure-form-aligned game-creator-form" $ mdo
+    gameCreator = elClass "section" "section" $ mdo
         nameInput <- labeledTextInput "Name" "game-name" def
         maxScore <- labeledTextInput "Max Score" "test" $ def 
             & textInputConfig_initialValue .~ "10"
