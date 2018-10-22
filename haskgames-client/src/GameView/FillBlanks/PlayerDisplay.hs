@@ -18,8 +18,8 @@ module GameView.FillBlanks.PlayerDisplay where
     playersList :: (MonadWidget t m)
                 => Dynamic t PublicGame
                 -> m ()
-    playersList s = do
-        elClass "ul" "pure-u-1 pure-u-md-1-5 players-list" $
+    playersList s = elClass "div" "column is-one-quarter" $ do
+        elClass "ul" "tile is-ancestor is-vertical" $
             listWithKey (view publicGameActivePlayers <$> s) displayPlayer
         return ()
 
@@ -27,17 +27,23 @@ module GameView.FillBlanks.PlayerDisplay where
                   => PlayerId
                   -> Dynamic t ImpersonalState
                   -> m ()
-    displayPlayer name val = elClass "li" "players-list-item" $ do
-        el "h3" $ text name
-        elClass "div" "players-list-score" $ do
-            text "Score: "
-            display $ view impersonalStateScore <$> val
-        elClass "div" "players-list-status" $
-            dynText $ showStatus <$> view impersonalStateStatus <$> val  
+    displayPlayer name val = elClass "li" "tile is-vertical" $ do
+        elClass "h6" "title is-4 has-text-centered" $ text name 
+        elClass "nav" "level subtitle" $ do
+            elClass "div" "level-left" $ do
+                elClass "div" "has-text-centered" $ do
+                    elClass "p" "heading" $ text "Score"
+                    elClass "p" "title is-6" $
+                        display $ view impersonalStateScore <$> val
+            elClass "div" "level-right" $
+                elClass "div" "has-text-centered" $ do
+                    elClass "p" "heading" $ text "Status"
+                    elClass "p" "title is-6" $
+                        dynText $ showStatus <$> view impersonalStateStatus <$> val  
         return ()
         where
-            showStatus (Selector SelectingCards) = "Selecting Cards"
-            showStatus (Selector (WaitingJudgement ())) = "Submitted"
+            showStatus (Selector SelectingCards) = "Selecting"
+            showStatus (Selector (WaitingJudgement _)) = "Submitted"
             showStatus SittingOut = "Sitting Out"
-            showStatus (Judge (WaitingCases _)) = "Waiting Submissions"
-            showStatus (Judge (PickingWinner _ _)) = "Picking Winner"
+            showStatus (Judge (WaitingCases _)) = "Waiting"
+            showStatus (Judge (PickingWinner _ _)) = "Judging"

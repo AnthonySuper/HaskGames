@@ -36,7 +36,7 @@ module GameView.FillBlanks.ChatView where
     chatView :: (MonadWidget t m)
              => Event t ServerEvent
              -> m (Event t [BS.ByteString])
-    chatView evt = elClass "div" "chat-view" $ mdo
+    chatView evt = elClass "section" "section chat-view" $ mdo
         let newMsg = fmapMaybe (preview toChatMessage) evt 
         msgCount <- count newMsg
         let insertEvt = attachWith Map.insert (current msgCount) newMsg 

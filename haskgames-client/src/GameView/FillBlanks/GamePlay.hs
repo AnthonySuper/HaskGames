@@ -34,11 +34,11 @@ module GameView.FillBlanks.GamePlay where
     gamePlayWidget :: forall t m . (MonadWidget t m)
                    => WebSocket t
                    -> m (Event t [BS.ByteString])
-    gamePlayWidget ws = elClass "div" "pure-g" $ do
+    gamePlayWidget ws = do
         let serverEvents = serverEvent $ ws & _webSocket_recv
         maybeState <- gameStateDyn serverEvents
         state <- maybeDyn maybeState
-        elClass "div" "pure-u-1 pure-u-md-4-5" $ do
+        el "article"  $ do
             socketDyn <- dynHold $ gamePlayM <$> state
             ce <- chatView serverEvents
             return $ ce <> socketDyn
@@ -49,21 +49,23 @@ module GameView.FillBlanks.GamePlay where
     gamePlayM Nothing = return never
     gamePlayM (Just s) = gamePlayInner s
 
+
+    sectionOfColumns = 
+        elClass "section" "section" . elClass "div" "columns"
+
     gamePlayInner :: forall t m . (MonadWidget t m)
                   => Dynamic t (PublicGame, PersonalState)
                   -> m (Event t [BS.ByteString])
-    gamePlayInner state = do
+    gamePlayInner state = sectionOfColumns $ do
         playerState <- holdUniqDyn $ view _2 <$> state
         publicState <- holdUniqDyn $ view _1 <$> state 
         callCard <- holdUniqDyn $ judgeCard <$> view _1 <$> state
         playersList (view _1 <$> state)
-        broadcastE <- elClass "div" "" $ do
+        broadcastE <- elClass "div" "column" $ do
             je <- judgingArea callCard playerState publicState
             se <- dynHold $ selectingArea <$> callCard <*> playerState
-            return $ traceEvent "Sending Broadcast Event" $ leftmost [se, je]
+            return $ leftmost [se, je]
         return broadcastE
-        where
-            toList a = [a]
 
     judgingArea :: MonadWidget t m
                 => Dynamic t (Maybe CallCard)
@@ -117,13 +119,12 @@ module GameView.FillBlanks.GamePlay where
     selectingArea card state = case state ^. personalStateStatus of
         Selector SelectingCards -> do 
             judgeSelect <- handSelector card state
-            return $ toList . encode . SubmitJudgement <$> judgeSelect 
+            return $ pure . encode . SubmitJudgement <$> judgeSelect 
         Selector (WaitingJudgement jc) -> do 
             judgementWaiter card jc
             return never
         _ -> return never
-        where
-            toList a = [a]
+        
 
 
     judgementWaiter :: MonadWidget t m
