@@ -130,7 +130,6 @@ module Game.FillBlanks.Game where
         g ^.. publicGameActivePlayers . traverse . 
             impersonalStateStatus . _Judge . 
             _PickingWinner . _2 . traverse
-
     
     personalToImpersonal :: PersonalState -> ImpersonalState
     personalToImpersonal p 

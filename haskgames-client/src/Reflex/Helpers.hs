@@ -10,6 +10,7 @@
 module Reflex.Helpers where 
     import Reflex.Dom
     import Control.Monad (when, (>=>))
+    import Control.Lens.Operators
     
     whenDyn :: (MonadWidget t m)
             => Dynamic t Bool

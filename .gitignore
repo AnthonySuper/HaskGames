@@ -5,3 +5,4 @@ result/
 result
 dist-newstyle/
 .vscode/
+.ghc.environment.*
