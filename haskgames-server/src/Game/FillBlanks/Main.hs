@@ -8,6 +8,7 @@ module Game.FillBlanks.Main where
     import Data.Aeson
     import Game.Backend.Common
     import qualified Data.Map as Map
+    import qualified Data.Set as Set
     import Control.Concurrent.STM
     import Control.Concurrent.STM.TVar
     import Control.Concurrent.STM.TChan
@@ -81,23 +82,38 @@ module Game.FillBlanks.Main where
                     print "Found a working backend, joining..."
                     sendJSONMessage c $ JoinedGame
                     joinGame backend' c id
-        
-    backendCounter :: TVar Integer
-    backendCounter = unsafePerformIO $ newTVarIO 0
 
-    addAndReturn s = do
-        r <- readTVar s
-        modifyTVar s (+1)
-        return r
+
+    nameSet :: TVar (Set.Set T.Text)
+    nameSet = unsafePerformIO $ newTVarIO Set.empty
+
+    insertName :: T.Text -> IO Bool
+    insertName n = atomically $ do
+        r <- readTVar nameSet
+        if Set.notMember n r then do 
+           modifyTVar nameSet (Set.insert n)
+           return True
+        else
+            return False
+
+    
+    validateName conn name = do
+        res <- insertName name
+        if res then do
+            sendJSONMessage conn NameAccepted
+            return name 
+        else do
+            sendJSONMessage conn NameTaken
+            getName conn 
 
     getName conn = do
         c <- recvJSONMessage conn
         case c of
-            Just c' -> do
-                let n = (getMsgName c')
-                print ("Player connected named", n)
-                return n  
+            Just c' -> validateName conn c'
             Nothing -> getName conn
+
+    freeName n = 
+        atomically $ modifyTVar nameSet (Set.delete n)
 
     serverApp :: PendingConnection -> IO ()
     serverApp pc = do
@@ -105,4 +121,4 @@ module Game.FillBlanks.Main where
         forkPingThread conn 30
         id <- getName conn
         print "Found a new player, asking for commands..."
-        newPlayer conn id
+        flip finally (freeName id) $ newPlayer conn id

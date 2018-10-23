@@ -29,8 +29,8 @@ module GameView.FillBlanks.Main where
     namePickWorkflow ws = Workflow inner
         where
             inner = do
-                evt <- namePickView
-                return (evt, evt $> pickerWorkflow ws)
+                (continue, evt) <- namePickView ws
+                return (evt, continue $> pickerWorkflow ws)
 
     pickerWorkflow :: forall t m. 
                     ( MonadWidget t m
