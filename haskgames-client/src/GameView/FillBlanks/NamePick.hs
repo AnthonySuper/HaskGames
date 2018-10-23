@@ -24,7 +24,9 @@ module GameView.FillBlanks.NamePick (namePickView) where
     namePickView ws = elClass "div" "name-pick" $ do
         let nameTaken = toNameTaken ws
         let nameAccept = toNameAccept ws
-        input <- labeledTextInput "Player Name" "player-name" def
+        input <- labeledTextInput "Player Name" "player-name" $
+            def &
+                textInputConfig_setValue .~ (nameTaken $> "")
         b <- button "Submit"
         return $ (nameAccept, nameToEvt <$> tagValue input b)
 
