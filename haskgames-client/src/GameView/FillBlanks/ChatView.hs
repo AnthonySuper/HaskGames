@@ -25,6 +25,7 @@ module GameView.FillBlanks.ChatView where
         ,   _chatMsgBody :: T.Text
         } deriving (Show, Eq, Ord)
 
+        
     makeLenses ''ChatMsg
 
     asChat :: Iso' (T.Text, T.Text) ChatMsg 

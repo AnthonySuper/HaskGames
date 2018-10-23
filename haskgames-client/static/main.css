@@ -10,12 +10,6 @@ body {
     padding: 0;
 }
 
-.game-creator-form {
-    margin-top: 25px;
-    
-    padding: 25px;
-}
-
 ul {
     margin: 0;
     padding: 0;
@@ -34,37 +28,6 @@ li {
     display: flex;
 }
 
-.decks-form-container {
-    display: flex;
-    margin-bottom: 0.5em;
-}
-
-.decks-label {
-    display: block;
-    width: 10em;
-    margin: 0 1em 0 0;
-    font-size: 12pt;
-    text-align: right;
-}
-
-.decks-list {
-    display: block;
-}
-
-.players-list {
-    background-color: rgb(61, 79, 93);
-    color: #fff;
-    padding: 20px;
-}
-
-.players-list-item h3 {
-    margin: 5px;
-    padding: 0;
-}
-
-.gameplay-area {
-    flex-grow: 4;
-}
 
 .card {
     background: #fff;
@@ -86,6 +49,15 @@ li {
     box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
 }
 
+.color-highlight-one {
+    background-color: #B4E1FF;
+}
+
+.color-highlight-two {
+    background-color: #AB87FF;
+    color: #FEFEFE;
+}
+
 .response-display {
     margin: 15px;
     font-size: 16px;
@@ -101,13 +73,20 @@ li {
 .chat-view {
     display: flex;
     flex-direction: column;
+    height: 35%;
+    overflow-y: hidden;
 }
 
 .chat-messages {
-    height: 33vh;
+    flex-grow: 1;
     overflow: scroll;
 }
 
 .chat-user {
     font-weight: 600px;
+}
+
+.gameplay-section {
+    height: 65%;
+    overflow-y: scroll;
 }

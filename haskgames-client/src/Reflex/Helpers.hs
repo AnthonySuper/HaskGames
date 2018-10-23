@@ -11,6 +11,7 @@ module Reflex.Helpers where
     import Reflex.Dom
     import Control.Monad (when, (>=>))
     import Control.Lens.Operators
+    import Data.Aeson (encode)
     
     whenDyn :: (MonadWidget t m)
             => Dynamic t Bool
@@ -36,3 +37,5 @@ module Reflex.Helpers where
     tagValue = tag . current . value
 
     foldDynAp = foldDyn ($)
+
+    toMessage = pure . encode 

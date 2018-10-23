@@ -20,9 +20,10 @@ module GameView.FillBlanks.HandSelector where
     displayResponseCard :: (MonadWidget t m)
                         => ResponseCard
                         -> m (Event t ResponseCard)
-    displayResponseCard c = elClass "li" "response-card" $ do
-        (e, _) <- el' "h3" $ text (c ^. responseBody)
-        return $ domEvent Click e $> c
+    displayResponseCard c = 
+        elClass "li" "tile" $ do
+            (e, _) <- el' "h3" $ text (c ^. responseBody)
+            return $ domEvent Click e $> c
 
     responseCardSection :: forall t m. (MonadWidget t m)
                         => Int
@@ -30,8 +31,8 @@ module GameView.FillBlanks.HandSelector where
                         -> [ResponseCard]
                         -> m (CardEvent t)
     responseCardSection arity chosen cards
-        = do
-            k <- elClass "ul" "hand-cards-list" $
+        = elClass "div" "tile is-ancestor" $ do
+            k <- elClass "ul" "tile is-parent" $
                 mapM displayResponseCard collection
             return $
                 ffilter filtering . fmap toAdding $

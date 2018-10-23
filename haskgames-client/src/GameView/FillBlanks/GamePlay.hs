@@ -51,7 +51,7 @@ module GameView.FillBlanks.GamePlay where
 
 
     sectionOfColumns = 
-        elClass "section" "section" . elClass "div" "columns"
+        elClass "section" "section gameplay-section" . elClass "div" "columns"
 
     gamePlayInner :: forall t m . (MonadWidget t m)
                   => Dynamic t (PublicGame, PersonalState)
@@ -119,13 +119,11 @@ module GameView.FillBlanks.GamePlay where
     selectingArea card state = case state ^. personalStateStatus of
         Selector SelectingCards -> do 
             judgeSelect <- handSelector card state
-            return $ pure . encode . SubmitJudgement <$> judgeSelect 
+            return $ toMessage . SubmitJudgement <$> judgeSelect 
         Selector (WaitingJudgement jc) -> do 
             judgementWaiter card jc
             return never
         _ -> return never
-        
-
 
     judgementWaiter :: MonadWidget t m
                     => Maybe CallCard
@@ -175,7 +173,8 @@ module GameView.FillBlanks.GamePlay where
                       => [T.Text]
                       -> [ResponseCard]
                       -> m (Event t ([ResponseCard] -> [ResponseCard]))
-    responseInContext c r = elClass "div" "card card-2 response-display" $ go c r
+    responseInContext c r = 
+        elClass "div" "card card-2 response-display color-highlight-two" $ go c r
         where
             go [] _ = return never
             go (c:cs) [] = do
