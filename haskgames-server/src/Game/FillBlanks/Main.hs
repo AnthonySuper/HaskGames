@@ -95,21 +95,24 @@ module Game.FillBlanks.Main where
            return True
         else
             return False
-
     
     validateName conn name = do
         res <- insertName name
         if res then do
+            print "Name accepted"
             sendJSONMessage conn NameAccepted
             return name 
         else do
+            print "Name taken :("
             sendJSONMessage conn NameTaken
             getName conn 
 
     getName conn = do
         c <- recvJSONMessage conn
         case c of
-            Just c' -> validateName conn c'
+            Just c' -> do
+                print ("Validating name", getMsgName c') 
+                validateName conn (getMsgName c')
             Nothing -> getName conn
 
     freeName n = 
