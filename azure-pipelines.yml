@@ -10,6 +10,9 @@ steps:
 - script: curl https://nixos.org/nix/install | sh
   displayName: Install NixOS
 
+- script: . /home/vsts/.nix-profile/etc/profile.d/nix.sh
+  displayName: Enable NixOS
+
 - script: |
     sudo mkdir -p /etc/nix
     echo "substituters = https://cache.nixos.org/" | sudo tee -a /etc/nix/nix.conf > /dev/null
