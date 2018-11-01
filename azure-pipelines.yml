@@ -20,5 +20,6 @@ steps:
     echo "binary-cache-public-keys = ryantrinkle.com-1:JJiAKaRv9mWgpVAz8dwewnZe0AzzEAzPkagE9SP5NWI= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" | sudo tee -a /etc/nix/nix.conf > /dev/null
   displayName: "Enable the binary caches"
 - script: |
+    source ~/.nix-profile/etc/profile.d/nix.sh
     ~/.nix-profile/bin/nix build
   displayName: "Run the nix build"
