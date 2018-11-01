@@ -49,7 +49,10 @@ library
     , reflex
     , reflex-dom
     , text
-    , lens-aeson
+    , vector
+    , unordered-containers
+    , scientific
+    , attoparsec
   default-language: Haskell2010
 
 executable haskgames-client
@@ -81,7 +84,10 @@ executable haskgames-client
     , reflex
     , reflex-dom
     , text
-    , lens-aeson
+    , vector
+    , unordered-containers
+    , scientific
+    , attoparsec
   default-language: Haskell2010
 
 test-suite HaskGames-client-test
@@ -104,5 +110,8 @@ test-suite HaskGames-client-test
     , reflex
     , reflex-dom
     , text
-    , lens-aeson
+    , vector
+    , unordered-containers
+    , scientific
+    , attoparsec
   default-language: Haskell2010
