@@ -23,3 +23,11 @@ steps:
     source ~/.nix-profile/etc/profile.d/nix.sh
     ~/.nix-profile/bin/nix -vv build
   displayName: "Run the nix build"
+- task: PublishBuildArtifacts@1
+  inputs:
+      pathtoPublish: '$(Build.SourcesDirectory)/result' 
+      artifactName: 'drop' 
+      publishLocation: 'Container' # Options: container, filePath
+      #targetPath: # Required when publishLocation == FilePath
+      parallel: true # Optional
+      parallelCount: 8 # Optional
