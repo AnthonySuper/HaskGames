@@ -1,4 +1,10 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RecursiveDo, FlexibleContexts, NoMonomorphismRestriction, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings
+           , ScopedTypeVariables
+           , RecursiveDo
+           , FlexibleContexts
+           , NoMonomorphismRestriction
+           , TemplateHaskell
+           , TypeFamilies #-}
     module Main where
     import Reflex.Dom
     import Data.Monoid
@@ -17,6 +23,32 @@
     import qualified Data.ByteString.Lazy as BS
     import GameView.FillBlanks.Main
     import Data.Text.Encoding (decodeUtf8)
+    import GHCJS.DOM.Window (getLocation)
+    import GHCJS.DOM (currentWindowUnchecked)
+    import GHCJS.DOM.Location (getHost)
+    import GHCJS.DOM.Types (MonadJSM)
+    import System.IO.Unsafe (unsafePerformIO)
+    import Data.Functor (($>))
+
+
+    isLocal :: T.Text -> Bool 
+    isLocal s = s `elem` localHosts
+        where
+            localHosts = ["localhost", "0.0.0.0", ""]
+
+
+    getWebsocketLocation :: (MonadJSM m) => m T.Text
+    getWebsocketLocation = do
+        h <- hostStr
+        if isLocal h then
+            return "ws://localhost:9000"
+        else 
+            return $ mconcat ["ws://", h, "/ws"]
+        where
+            hostStr = host
+            host = currentWindowUnchecked >>= getLocation >>= getHost
+    
+    
 
     headWidget :: (MonadWidget t m)
                => m ()
@@ -32,9 +64,14 @@
             styleSheet url = 
                 elAttr "link" ("rel" =: "stylesheet" <> "href" =: url) $ blank 
 
-
-    main = mainWidgetWithHead headWidget $ el "div" $ mdo
-        ws <- webSocket "ws://localhost:9000" $ def &
+    wsSection loc = mdo 
+        ws <- webSocket loc $ def &
             webSocketConfig_send .~ (traceEvent "Got WS Event" listEvt)
         listEvt <- fullWorkflow ws
+        return ()
+
+    main = mainWidgetWithHead headWidget $ el "div" $ mdo
+        pb <- getPostBuild 
+        loc <- performEvent (pb $> getWebsocketLocation)
+        widgetHold (return ()) (wsSection <$> loc)
         return ()
