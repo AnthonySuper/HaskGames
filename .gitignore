@@ -6,3 +6,4 @@ result
 dist-newstyle/
 .vscode/
 .ghc.environment.*
+bundle/
