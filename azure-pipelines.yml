@@ -23,9 +23,11 @@ steps:
     source ~/.nix-profile/etc/profile.d/nix.sh
     ~/.nix-profile/bin/nix -vv build
   displayName: "Run the nix build"
+- script: |
+    ./build-deploy.sh
 - task: PublishBuildArtifacts@1
   inputs:
-      pathtoPublish: '$(Build.SourcesDirectory)/result' 
+      pathtoPublish: '$(Build.SourcesDirectory)/bundle' 
       artifactName: 'drop' 
       publishLocation: 'Container' # Options: container, filePath
       #targetPath: # Required when publishLocation == FilePath
