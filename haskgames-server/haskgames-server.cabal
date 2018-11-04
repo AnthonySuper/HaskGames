@@ -53,6 +53,9 @@ library
     , text
     , websockets
     , wreq
+    , snap
+    , snap-core
+    , websockets-snap
   default-language: Haskell2010
 
 executable haskgames-server
@@ -88,6 +91,9 @@ executable haskgames-server
     , text
     , websockets
     , wreq
+    , snap
+    , snap-core
+    , websockets-snap
   default-language: Haskell2010
 
 test-suite haskgames-server-test
@@ -119,4 +125,7 @@ test-suite haskgames-server-test
     , text
     , websockets
     , wreq
+    , snap
+    , snap-core
+    , websockets-snap
   default-language: Haskell2010

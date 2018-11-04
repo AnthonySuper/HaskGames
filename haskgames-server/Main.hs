@@ -6,7 +6,17 @@
 module Main where
     import Network.WebSockets
     import Game.FillBlanks.Main
+    import Snap
+    import Network.WebSockets.Snap
+    import Snap.Util.FileServe (serveDirectory)
+    import Control.Applicative
+
+    site :: Snap ()
+    site =
+        route [("ws", runWebSocketsSnap serverApp)] <|>
+        serveDirectory "public"
+    
 
     main = do
-        putStrLn "Starting server on port 9000..."
-        runServer "0.0.0.0" 9000 $ serverApp
+        putStrLn "Starting server..."
+        quickHttpServe site 

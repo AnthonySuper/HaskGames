@@ -39,13 +39,9 @@
 
     getWebsocketLocation :: (MonadJSM m) => m T.Text
     getWebsocketLocation = do
-        h <- hostStr
-        if isLocal h then
-            return "ws://localhost:9000"
-        else 
-            return $ mconcat ["ws://", h, "/ws"]
+        h <- host
+        return $ mconcat ["ws://", h, "/ws"]
         where
-            hostStr = host
             host = currentWindowUnchecked >>= getLocation >>= getHost
     
     
