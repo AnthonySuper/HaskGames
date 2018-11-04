@@ -21,6 +21,7 @@ module GameView.FillBlanks.GameCreator where
     import Data.Functor (($>))
     import Data.List (delete)
 
+
     gameCreator :: (MonadWidget t m, DomBuilder t m)
                 => m (Event t [BS.ByteString])
     gameCreator = elClass "section" "section" $ mdo

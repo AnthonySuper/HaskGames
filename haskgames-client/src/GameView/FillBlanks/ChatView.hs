@@ -17,6 +17,8 @@ module GameView.FillBlanks.ChatView where
     import Control.Lens
     import Data.Aeson (encode)
     import Data.Monoid ((<>))
+    import GHCJS.DOM.Element (getScrollTop, getScrollHeight, setScrollTop)
+    import Data.Functor (($>))
 
     data ChatMsg
         = ChatMsg 
@@ -40,8 +42,10 @@ module GameView.FillBlanks.ChatView where
         msgCount <- count newMsg
         let insertEvt = attachWith Map.insert (current msgCount) newMsg 
         refDyn <- foldDyn ($) mempty insertEvt
-        elClass "div" "chat-messages" $
+        (e, _) <- elAttr' "div" ("class" =: "chat-messages") $
             listWithKey refDyn chatItem
+        let scrollPerf = scrollBottom (_element_raw e)
+        performEvent (newMsg $> scrollPerf)
         input <- textInput $ def
             & textInputConfig_setValue .~ ("" <$ enterPressed)
             & textInputConfig_attributes .~ pure ("name" =: "chat-message")
@@ -53,4 +57,8 @@ module GameView.FillBlanks.ChatView where
             dynText $ (<> ": ") . view chatMsgAuthor <$> itm
         elClass "span" "chat-msg" $
             dynText $ view chatMsgBody <$> itm
-    
+
+    scrollBottom elm = do
+        sh <- getScrollHeight elm
+        setScrollTop elm sh
+        
