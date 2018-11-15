@@ -32,7 +32,7 @@ steps:
 - task: Docker@1
   displayName: 'Login to Docker'
   inputs:
-    azureSubscriptionEndpoint: 'haskgames-pipeline'
+    azureSubscriptionEndpoint: 'haskgames-pipelin'
     azureContainerRegistry: haskgames.azurecr.io
     command: login
 - task: Docker@1
