@@ -25,18 +25,3 @@ steps:
   displayName: "Run the nix build"
 - script: |
     ./build-ci.sh
-- task: Docker@1
-  displayName: "Build the docker image"
-  inputs:
-    imageName: "haskgames.azurecr.io/haskgames/haskgames-server:$(Build.BuildId)"
-- task: Docker@1
-  displayName: 'Login to Docker'
-  inputs:
-    azureSubscriptionEndpoint: 'haskgames-pipelin'
-    azureContainerRegistry: haskgames.azurecr.io
-    command: login
-- task: Docker@1
-  displayName: 'Push the Server Image'
-  inputs:
-    command: 'push'
-    imageName: "haskgames.azurecr.io/haskgames/haskgames-server:$(Build.BuildId)"
