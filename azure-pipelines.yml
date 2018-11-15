@@ -39,4 +39,4 @@ steps:
   displayName: 'Push the Server Image'
   inputs:
     command: 'push'
-    imageName: "haskgames.azurecr.io/haskgames/haskgames-server:$(Build.BuildId)
+    imageName: "haskgames.azurecr.io/haskgames/haskgames-server:$(Build.BuildId)""
