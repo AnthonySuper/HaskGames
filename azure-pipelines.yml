@@ -24,12 +24,19 @@ steps:
     ~/.nix-profile/bin/nix -vv build
   displayName: "Run the nix build"
 - script: |
-    ./build-deploy.sh
-- task: PublishBuildArtifacts@1
+    ./build-ci.sh
+- task: Docker@1
+  displayName: "Build the docker image"
   inputs:
-      pathtoPublish: '$(Build.SourcesDirectory)/bundle' 
-      artifactName: 'drop' 
-      publishLocation: 'Container' # Options: container, filePath
-      #targetPath: # Required when publishLocation == FilePath
-      parallel: true # Optional
-      parallelCount: 8 # Optional
+    imageName: "haskgames.azurecr.io/haskgames/haskgames-server:$(Build.BuildId)"
+- task: Docker@1
+  displayName: 'Login to Docker'
+  inputs:
+    azureSubscriptionEndpoint: 'haskgames-pipeline'
+    azureContainerRegistry: haskgames.azurecr.io
+    command: login
+- task: Docker@1
+  displayName: 'Push the Server Image'
+  inputs:
+    command: 'push'
+    imageName: "haskgames.azurecr.io/haskgames/haskgames-server:$(Build.BuildId)

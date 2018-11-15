@@ -16,7 +16,6 @@ module Main where
         route [("ws", runWebSocketsSnap serverApp)] <|>
         serveDirectory "public"
     
-
     main = do
         putStrLn "Starting server..."
         quickHttpServe site 

@@ -1,0 +1,13 @@
+.vscode
+.stack-work
+result/
+.ghc.environment.*
+.travis.yml 
+azure-pipelines.yml
+cabal.project
+ChangeLog.md
+LICENSE 
+README.md
+Setup.hs
+dist-newstyle/
+.git/
