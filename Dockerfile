@@ -14,7 +14,7 @@ RUN "mkdir" "-p" "bundle"
 RUN "cp" "-r" "result/ghcjs/haskgames-client/bin/haskgames-client.jsexe" "bundle/public"
 RUN "cp" "result/ghc/haskgames-server/bin/haskgames-server" "bundle/server"
 RUN "chmod" "-R" "0777" "bundle"
-RUN "chod" "+x" "bundle/server"
+RUN "chmod" "+x" "bundle/server"
 
 WORKDIR /build/bundle
 

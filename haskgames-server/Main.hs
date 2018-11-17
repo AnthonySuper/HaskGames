@@ -14,7 +14,7 @@ module Main where
     site :: Snap ()
     site =
         route [("ws", runWebSocketsSnap serverApp)] <|>
-        serveDirectory "public"
+        serveDirectory "bin/haskgames-client.jsexe/"
     
     main = do
         putStrLn "Starting server..."
